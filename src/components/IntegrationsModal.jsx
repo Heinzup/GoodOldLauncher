@@ -1,19 +1,60 @@
+import { useState } from "react";
+import { storeServiceCredential } from "../core/native/nativeBridge";
+
 export default function IntegrationsModal({
   isOpen,
   language,
   t,
   onClose,
   integrations,
-  onSetIntegration
+  onLogin,
+  onDisconnect,
+  onSetField,
+  oauthLoading
 }) {
+  const [manualInputs, setManualInputs] = useState({}); // { Platform: "value" }
+  const [storingCredential, setStoringCredential] = useState(null);
+
   if (!isOpen) return null;
 
   const platforms = [
-    { id: "Steam", name: "Steam", icon: "🎮", color: "#1b2839" },
-    { id: "EA", name: "EA Play", icon: "🎯", color: "#111a1f" },
-    { id: "Epic", name: "Epic Games", icon: "⚔️", color: "#001a33" },
-    { id: "GOG", name: "GOG", icon: "🕹️", color: "#2d2d2d" }
+    { id: "Steam", name: "Steam", icon: "🎮", color: "#1b2839", credentialHelp: "Skopiuj SteamID64 (17 cyfr) ze swojego profilu https://steamcommunity.com/my" },
+    { id: "EA", name: "EA Play", icon: "🎯", color: "#111a1f", credentialHelp: "Wklej token EA API" },
+    { id: "Ubisoft", name: "Ubisoft Connect", icon: "🛡️", color: "#1e2f4f", credentialHelp: "Wklej token Ubisoft API" },
+    { id: "Epic", name: "Epic Games", icon: "⚔️", color: "#001a33", credentialHelp: "Wklej token Epic API" },
+    { id: "GOG", name: "GOG", icon: "🕹️", color: "#2d2d2d", credentialHelp: "Wklej token GOG API" }
   ];
+
+  async function handleSubmitCredential(platformId) {
+    const credential = manualInputs[platformId];
+    if (!credential || !credential.trim()) {
+      alert("Wklej dane identyfikacyjne");
+      return;
+    }
+
+    try {
+      setStoringCredential(platformId);
+      const result = await storeServiceCredential(platformId, credential);
+      
+      if (result.ok) {
+        // Zapisz do integrations
+        onSetField(platformId, "connected", true);
+        onSetField(platformId, "userId", credential);
+        
+        // Wyczyść input
+        setManualInputs(prev => ({
+          ...prev,
+          [platformId]: ""
+        }));
+      } else {
+        alert(`Błąd: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`Błąd: ${error.message}`);
+    } finally {
+      setStoringCredential(null);
+    }
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -25,34 +66,76 @@ export default function IntegrationsModal({
 
         <div className="modal-body">
           <div className="integrations-list">
-            {platforms.map((platform) => (
+            {platforms.map((platform) => {
+              const state = integrations[platform.id] || {};
+              const isConnected = Boolean(state.connected || state === true);
+              const isLoading = oauthLoading === platform.id;
+              const isProcessing = storingCredential === platform.id;
+              const showManualInput = isLoading || isProcessing;
+
+              return (
               <div key={platform.id} className="integration-item">
                 <div className="integration-header">
                   <span className="integration-icon">{platform.icon}</span>
                   <div className="integration-info">
                     <h3>{platform.name}</h3>
                     <p>
-                      {integrations[platform.id]
-                        ? "Połączono"
-                        : "Kliknij aby połączyć"}
+                      {isProcessing
+                        ? "⏳ Weryfikowanie..."
+                        : isLoading 
+                          ? "⏳ Logowanie..." 
+                          : isConnected 
+                            ? "✓ Połączono" 
+                            : "Kliknij aby zalogować"}
                     </p>
                   </div>
-                  <button
-                    className={`integration-toggle ${
-                      integrations[platform.id] ? "connected" : ""
-                    }`}
-                    onClick={() =>
-                      onSetIntegration(
-                        platform.id,
-                        !integrations[platform.id]
-                      )
-                    }
-                  >
-                    {integrations[platform.id] ? "✓" : "+"}
-                  </button>
+                  <div className="integration-actions">
+                    {!isConnected ? (
+                      <button
+                        className="integration-login"
+                        onClick={() => onLogin(platform.id)}
+                        disabled={isLoading || isProcessing}
+                      >
+                        {isProcessing ? "⏳ Weryfikowanie..." : isLoading ? "⏳ Logowanie..." : "Zaloguj"}
+                      </button>
+                    ) : (
+                      <button
+                        className="integration-disconnect"
+                        onClick={() => onDisconnect(platform.id)}
+                        disabled={isProcessing}
+                      >
+                        Wyloguj
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {integrations[platform.id] && (
+                {showManualInput && (
+                  <div className="integration-manual-input">
+                    <p className="integration-help-text">
+                      {platform.credentialHelp}
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Wklej tutaj..."
+                      value={manualInputs[platform.id] || ""}
+                      onChange={(e) => setManualInputs(prev => ({
+                        ...prev,
+                        [platform.id]: e.target.value
+                      }))}
+                      disabled={isProcessing}
+                    />
+                    <button
+                      className="integration-confirm"
+                      onClick={() => handleSubmitCredential(platform.id)}
+                      disabled={isProcessing || !manualInputs[platform.id]?.trim()}
+                    >
+                      {isProcessing ? "Weryfikowanie..." : "Potwierdź"}
+                    </button>
+                  </div>
+                )}
+
+                {isConnected && !showManualInput && (
                   <div className="integration-details">
                     <label className="field-label">
                       {platform.name} User ID
@@ -60,47 +143,26 @@ export default function IntegrationsModal({
                     <input
                       type="text"
                       placeholder={`Np. steam_id_64 dla ${platform.name}`}
-                      defaultValue={
-                        integrations[`${platform.id}_userId`] || ""
-                      }
-                      onChange={(e) => {
-                        const next = {
-                          ...integrations,
-                          [`${platform.id}_userId`]: e.target.value
-                        };
-                        localStorage.setItem(
-                          "launcher_integrations",
-                          JSON.stringify(next)
-                        );
-                      }}
+                      value={state.userId || ""}
+                      onChange={(e) => onSetField(platform.id, "userId", e.target.value)}
                     />
 
                     <label className="field-label">API Token (opcjonalnie)</label>
                     <input
                       type="password"
                       placeholder="Twój token API..."
-                      defaultValue={
-                        integrations[`${platform.id}_token`] || ""
-                      }
-                      onChange={(e) => {
-                        const next = {
-                          ...integrations,
-                          [`${platform.id}_token`]: e.target.value
-                        };
-                        localStorage.setItem(
-                          "launcher_integrations",
-                          JSON.stringify(next)
-                        );
-                      }}
+                      value={state.token || ""}
+                      onChange={(e) => onSetField(platform.id, "token", e.target.value)}
                     />
 
                     <p className="integration-note">
-                      🔒 Dane są przechowywane lokalnie. Nie są wysyłane nigdzie.
+                      🔒 Dane są przechowywane bezpiecznie. Logowanie jest wykonywane przez oficjalne strony usług.
                     </p>
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="add-path-section">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collectLibrary } from "./core/library/libraryService";
 import { registerBuiltinProviders } from "./core/providers/mockProviders";
 import { launchGame } from "./core/launch/launchService";
+import { installGame, loginService, logoutService, openGameFolder, uninstallGame, verifyServiceConnection } from "./core/native/nativeBridge";
 import { getProfile, saveProfile } from "./core/profiles/profileStore";
 import {
   addScanPath,
@@ -54,6 +55,7 @@ export default function App() {
   const [installedFilter, setInstalledFilter] = useState("all");
   const [showScanModal, setShowScanModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
   const [favorites, setFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITES)) || [];
@@ -68,6 +70,8 @@ export default function App() {
       return {};
     }
   });
+  const [oauthLoading, setOAuthLoading] = useState(null); // null | platform name
+
 
   const compatOptions = [
     { value: "none", label: t("none", language) },
@@ -98,6 +102,21 @@ export default function App() {
     loadLibrary();
   }, []);
 
+  useEffect(() => {
+    if (!contextMenu) {
+      return undefined;
+    }
+
+    const handleClose = () => setContextMenu(null);
+    window.addEventListener("click", handleClose);
+    window.addEventListener("scroll", handleClose, true);
+
+    return () => {
+      window.removeEventListener("click", handleClose);
+      window.removeEventListener("scroll", handleClose, true);
+    };
+  }, [contextMenu]);
+
   const selectedGame = useMemo(
     () => games.find((game) => game.id === selectedGameId) ?? null,
     [games, selectedGameId]
@@ -117,6 +136,13 @@ export default function App() {
   const favoriteGames = useMemo(() => {
     return games.filter((game) => favorites.includes(game.id)).slice(0, 8);
   }, [games, favorites]);
+
+  const contextGame = useMemo(() => {
+    if (!contextMenu?.gameId) {
+      return null;
+    }
+    return games.find((game) => game.id === contextMenu.gameId) || null;
+  }, [games, contextMenu]);
 
   useEffect(() => {
     if (!selectedGame) {
@@ -138,19 +164,27 @@ export default function App() {
       return;
     }
 
-    setStatusText(`${t("launching", language)}: ${selectedGame.title}`);
-    const result = await launchGame(selectedGame);
+    await handleLaunchForGame(selectedGame);
+  }
+
+  async function handleLaunchForGame(game) {
+    if (!game) {
+      return;
+    }
+
+    setStatusText(`${t("launching", language)}: ${game.title}`);
+    const result = await launchGame(game);
     if (!result.ok) {
       setStatusText(`${t("launchError", language)}: ${result.error}`);
       return;
     }
 
     if (Array.isArray(result.notes) && result.notes.length > 0) {
-      setStatusText(`${t("launchedWithNotes", language)}: ${selectedGame.title}`);
+      setStatusText(`${t("launchedWithNotes", language)}: ${game.title}`);
       return;
     }
 
-    setStatusText(`${t("launched", language)}: ${selectedGame.title}`);
+    setStatusText(`${t("launched", language)}: ${game.title}`);
   }
 
   async function handleRefreshLibrary() {
@@ -185,10 +219,133 @@ export default function App() {
   function handleSetIntegration(platform, connected) {
     const newIntegrations = {
       ...integrations,
-      [platform]: connected
+      [platform]: {
+        ...(integrations[platform] || {}),
+        connected,
+        lastActionAt: new Date().toISOString()
+      }
     };
     setIntegrations(newIntegrations);
     localStorage.setItem(STORAGE_KEY_INTEGRATIONS, JSON.stringify(newIntegrations));
+  }
+
+  function handleSetIntegrationField(platform, field, value) {
+    const newIntegrations = {
+      ...integrations,
+      [platform]: {
+        ...(integrations[platform] || {}),
+        [field]: value
+      }
+    };
+
+    setIntegrations(newIntegrations);
+    localStorage.setItem(STORAGE_KEY_INTEGRATIONS, JSON.stringify(newIntegrations));
+  }
+
+  async function handleLoginService(platform) {
+    try {
+      setOAuthLoading(platform);
+      setStatusText(`${t("connecting", language) || "Łączenie"}... ${platform}`);
+
+      const result = await loginService(platform);
+      
+      if (!result.ok) {
+        setStatusText(`${t("launchError", language)}: ${result.error}`);
+        setOAuthLoading(null);
+        return;
+      }
+
+      // Jeśli wymaga manual input (Steam SteamID, itd.)
+      if (result.requiresManualInput) {
+        setStatusText(`⏳ ${platform}: Wklej dane identyfikacyjne w oknie integracji`);
+        // Nie ustawiamy connected=true, bo user musi jeszcze wprowadzić dane
+        // oauthLoading zostaje ustawiony, aby pokazać spinner w IntegrationsModal
+        return;
+      }
+
+      // Logowanie powiodło się, token został zapisany
+      handleSetIntegration(platform, true);
+      
+      // Pokazz info o koncie jeśli dostępne
+      const accountInfo = result.accountInfo || {};
+      const message = accountInfo.username 
+        ? `${platform} - ${accountInfo.username}`
+        : platform;
+      
+      setStatusText(`✓ ${t("integrations", language) || "Integracje"}: ${message}`);
+      setOAuthLoading(null);
+    } catch (error) {
+      setStatusText(`${t("launchError", language)}: ${error.message}`);
+      setOAuthLoading(null);
+    }
+  }
+
+  async function handleDisconnectService(platform) {
+    try {
+      setStatusText(`${t("connecting", language) || "Odłączanie"}... ${platform}`);
+      
+      const result = await logoutService(platform);
+      if (!result.ok) {
+        setStatusText(`${t("launchError", language)}: ${result.error}`);
+        return;
+      }
+
+      handleSetIntegration(platform, false);
+      setStatusText(`✓ ${platform} ${t("disconnected", language) || "odłączony"}`);
+    } catch (error) {
+      setStatusText(`${t("launchError", language)}: ${error.message}`);
+    }
+  }
+
+  async function handleInstallForGame(game) {
+    if (!game) {
+      return;
+    }
+
+    const result = await installGame(game);
+    if (!result.ok) {
+      setStatusText(`${t("launchError", language)}: ${result.error}`);
+      return;
+    }
+
+    setGames((current) => current.map((entry) => (entry.id === game.id ? { ...entry, installed: true } : entry)));
+    setStatusText(`${t("installed", language)}: ${game.title}`);
+  }
+
+  async function handleUninstallForGame(game) {
+    if (!game) {
+      return;
+    }
+
+    const result = await uninstallGame(game);
+    if (!result.ok) {
+      setStatusText(`${t("launchError", language)}: ${result.error}`);
+      return;
+    }
+
+    setGames((current) => current.map((entry) => (entry.id === game.id ? { ...entry, installed: false } : entry)));
+    setStatusText(`${t("notDetected", language)}: ${game.title}`);
+  }
+
+  async function handleOpenFolderForGame(game) {
+    if (!game) {
+      return;
+    }
+
+    const result = await openGameFolder(game);
+    if (!result.ok) {
+      setStatusText(`${t("launchError", language)}: ${result.error}`);
+    }
+  }
+
+  function handleGameContextMenu(event, game) {
+    event.preventDefault();
+    setSelectedGameId(game.id);
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      gameId: game.id
+    });
   }
 
   return (
@@ -297,6 +454,7 @@ export default function App() {
                   key={game.id}
                   className={`game-tile ${selectedGameId === game.id ? "selected" : ""}`}
                   onClick={() => setSelectedGameId(game.id)}
+                  onContextMenu={(event) => handleGameContextMenu(event, game)}
                 >
                   {isFavorite && <span className="favorite-badge">★</span>}
                   <div className="game-cover">
@@ -437,8 +595,68 @@ export default function App() {
         t={t}
         onClose={() => setShowIntegrationsModal(false)}
         integrations={integrations}
-        onSetIntegration={handleSetIntegration}
+        onLogin={handleLoginService}
+        onDisconnect={handleDisconnectService}
+        onSetField={handleSetIntegrationField}
+        oauthLoading={oauthLoading}
       />
+
+      {contextMenu && contextGame ? (
+        <div
+          className="context-menu"
+          style={{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              handleLaunchForGame(contextGame);
+              setContextMenu(null);
+            }}
+          >
+            {t("launchGame", language)}
+          </button>
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              toggleFavorite(contextGame.id);
+              setContextMenu(null);
+            }}
+          >
+            {favorites.includes(contextGame.id) ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+          </button>
+          {contextGame.installed ? (
+            <button
+              className="context-menu-item danger"
+              onClick={() => {
+                handleUninstallForGame(contextGame);
+                setContextMenu(null);
+              }}
+            >
+              Odinstaluj
+            </button>
+          ) : (
+            <button
+              className="context-menu-item"
+              onClick={() => {
+                handleInstallForGame(contextGame);
+                setContextMenu(null);
+              }}
+            >
+              Zainstaluj
+            </button>
+          )}
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              handleOpenFolderForGame(contextGame);
+              setContextMenu(null);
+            }}
+          >
+            Otwórz folder gry
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
