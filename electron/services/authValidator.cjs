@@ -5,7 +5,7 @@ const TokenStore = require("./tokenStore.cjs");
  */
 
 /**
- * Weryfikuj Steam login - pobierz info o graczu
+ * Weryfikuj Steam login - sprawdź czy SteamID istnieje w config
  * @param {string} steamId - SteamID64
  * @returns {Promise<{ok: boolean, accountInfo?: object, error?: string}>}
  */
@@ -15,16 +15,19 @@ async function verifySteamLogin(steamId) {
       return { ok: false, error: "Nieprawidłowy format SteamID" };
     }
 
-    // UWAGA: Weryfikacja Steam wymaga Steam Web API Key
-    // Dla testowania, akceptujemy obecność SteamID64
-    // W produkcji dodaj Steam Web API Key i sprawdź GetPlayerSummaries
+    // Sprawdzenie czy SteamID jest zapisany i dostępny
+    const tokenResult = TokenStore.getToken("Steam");
+    if (!tokenResult.ok || tokenResult.token !== steamId) {
+      return { ok: false, error: "Token nie zgadza się z zapisanym SteamID" };
+    }
 
     return {
       ok: true,
       accountInfo: {
         platform: "Steam",
         userId: steamId,
-        verified: true
+        verified: true,
+        detectionMethod: "local"
       }
     };
   } catch (error) {

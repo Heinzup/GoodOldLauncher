@@ -245,7 +245,12 @@ export default function App() {
   async function handleLoginService(platform) {
     try {
       setOAuthLoading(platform);
-      setStatusText(`${t("connecting", language) || "Łączenie"}... ${platform}`);
+      
+      const platformName = platform.toLowerCase() === "steam" 
+        ? "Steam" 
+        : platform;
+      
+      setStatusText(`${t("connecting", language) || "Łączenie"}... ${platformName}`);
 
       const result = await loginService(platform);
       
@@ -255,24 +260,23 @@ export default function App() {
         return;
       }
 
-      // Jeśli wymaga manual input (Steam SteamID, itd.)
+      // Jeśli wymaga manual input (dla platform poza Steam)
       if (result.requiresManualInput) {
-        setStatusText(`⏳ ${platform}: Wklej dane identyfikacyjne w oknie integracji`);
-        // Nie ustawiamy connected=true, bo user musi jeszcze wprowadzić dane
+        setStatusText(`⏳ ${platformName}: Wklej dane identyfikacyjne w oknie integracji`);
         // oauthLoading zostaje ustawiony, aby pokazać spinner w IntegrationsModal
         return;
       }
 
-      // Logowanie powiodło się, token został zapisany
+      // Logowanie powiodło się (Steam auto-detected LUB token zweryfikowany)
       handleSetIntegration(platform, true);
       
       // Pokazz info o koncie jeśli dostępne
-      const accountInfo = result.accountInfo || {};
-      const message = accountInfo.username 
-        ? `${platform} - ${accountInfo.username}`
-        : platform;
+      const accountName = result.accountName || result.personaName;
+      const message = accountName 
+        ? `✓ ${platformName} - ${accountName}`
+        : `✓ ${platformName}`;
       
-      setStatusText(`✓ ${t("integrations", language) || "Integracje"}: ${message}`);
+      setStatusText(message);
       setOAuthLoading(null);
     } catch (error) {
       setStatusText(`${t("launchError", language)}: ${error.message}`);

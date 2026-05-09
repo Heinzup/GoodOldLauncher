@@ -71,7 +71,10 @@ export default function IntegrationsModal({
               const isConnected = Boolean(state.connected || state === true);
               const isLoading = oauthLoading === platform.id;
               const isProcessing = storingCredential === platform.id;
-              const showManualInput = isLoading || isProcessing;
+              
+              // Dla Steam - nie pokazuj manual input, bo auto-detection obsługuje wszystko
+              // Dla innych - jeśli isLoading, to znaczy czekamy na manual input
+              const shouldShowManualInput = isLoading && platform.id !== "Steam";
 
               return (
               <div key={platform.id} className="integration-item">
@@ -83,7 +86,9 @@ export default function IntegrationsModal({
                       {isProcessing
                         ? "⏳ Weryfikowanie..."
                         : isLoading 
-                          ? "⏳ Logowanie..." 
+                          ? platform.id === "Steam"
+                            ? "⏳ Auto-detect Steam..."
+                            : "⏳ Czekam na dane..."
                           : isConnected 
                             ? "✓ Połączono" 
                             : "Kliknij aby zalogować"}
@@ -110,7 +115,7 @@ export default function IntegrationsModal({
                   </div>
                 </div>
 
-                {showManualInput && (
+                {shouldShowManualInput && (
                   <div className="integration-manual-input">
                     <p className="integration-help-text">
                       {platform.credentialHelp}
@@ -135,7 +140,7 @@ export default function IntegrationsModal({
                   </div>
                 )}
 
-                {isConnected && !showManualInput && (
+                {isConnected && !shouldShowManualInput && (
                   <div className="integration-details">
                     <label className="field-label">
                       {platform.name} User ID

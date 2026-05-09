@@ -1,6 +1,7 @@
 const { BrowserWindow } = require("electron");
 const { URL } = require("node:url");
 const crypto = require("node:crypto");
+const { autoDetectSteamUser } = require("./steamDetection.cjs");
 
 /**
  * OAuth & OpenID handlers dla każdej platformy
@@ -8,38 +9,31 @@ const crypto = require("node:crypto");
 
 // ============ STEAM OPENID 2.0 ============
 class SteamOpenID {
+  /**
+   * Automatycznie wykryj zalogowanego Steam user
+   */
   static async authenticateUser() {
-    // Otwórz Steam login w browser window
-    // User musi się zalogować i skopiować SteamID64 ze swojego profilu
-    // Po zalogowaniu, profil jest dostępny na https://steamcommunity.com/my
-    return new Promise((resolve) => {
-      const authWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        show: true,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true
-        }
-      });
+    try {
+      const result = await autoDetectSteamUser();
+      
+      if (!result.ok) {
+        return result;
+      }
 
-      // Załaduj Steam login page
-      authWindow.loadURL("https://steamcommunity.com/login/");
-
-      // Po zalogowaniu, Steam redirectuje do https://steamcommunity.com/my
-      authWindow.webContents.on("did-navigate", (event, url) => {
-        if (url.includes("steamcommunity.com/my")) {
-          console.log("[Steam] Authenticated, asking for SteamID...");
-          // User musi teraz pobrać SteamID64 ze swojego profilu
-          // Możemy pokazać dialog z instrukcją
-        }
-      });
-
-      authWindow.on("closed", () => {
-        // Po zamknięciu user powinien wkleić SteamID w IntegrationsModal
-        resolve({ ok: true, requiresManualSteamID: true });
-      });
-    });
+      // Zwróć SteamID + account info
+      return {
+        ok: true,
+        steamId: result.steamId,
+        accountName: result.accountName,
+        personaName: result.personaName,
+        autoDetected: true // Flaga że to było auto-detect
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error.message
+      };
+    }
   }
 
   static validateSteamID(steamID) {

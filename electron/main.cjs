@@ -8,6 +8,7 @@ const { preflightCompatibility } = require("./services/compatibilityRuntime.cjs"
 const TokenStore = require("./services/tokenStore.cjs");
 const { OAuthHandler } = require("./services/oauthHandlers.cjs");
 const { verifyAuthConnection } = require("./services/authValidator.cjs");
+const { autoDetectSteamUser } = require("./services/steamDetection.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 
@@ -30,24 +31,36 @@ const oauthCallbacks = new Map();
  */
 async function initiateOAuthFlow(service) {
   try {
+    // Dla Steam - automatycznie wykryj zalogowanego użytkownika
+    if (service.toLowerCase() === "steam") {
+      const steamResult = await autoDetectSteamUser();
+      
+      if (!steamResult.ok) {
+        return {
+          ok: false,
+          error: steamResult.error
+        };
+      }
+
+      // Zwróć automatycznie wykryty SteamID
+      return {
+        ok: true,
+        userId: steamResult.steamId,
+        token: steamResult.steamId,
+        accountName: steamResult.accountName,
+        personaName: steamResult.personaName,
+        autoDetected: true
+      };
+    }
+
+    // Dla innych platform - wciąż wymaga manual input
     const result = await OAuthHandler.initiateAuthentication(service);
     
     if (!result.ok) {
-      // Zwróć informację o wymaganych krokach
       return {
         ok: false,
         requiresManualInput: true,
         error: result.error
-      };
-    }
-
-    // Dla Steam - user musi skopiować SteamID64 ze strony profilu
-    if (result.requiresManualSteamID) {
-      return {
-        ok: true,
-        requiresManualInput: true,
-        message: "Zaloguj się na Steam. Po zalogowaniu, skopiuj SteamID64 ze swojego profilu (URL: https://steamcommunity.com/my) i wklej go poniżej.",
-        platform: service
       };
     }
 
@@ -300,7 +313,29 @@ ipcMain.handle("launcher:loginService", async (_, serviceName) => {
       return result;
     }
 
-    // Dla Steam - user musi skopiować SteamID64 ze strony profilu
+    // Jeśli to auto-detected (Steam), zapisz token i zwróć sukces
+    if (result.autoDetected) {
+      TokenStore.setToken(serviceName, result.token, {
+        verifiedAt: new Date().toISOString(),
+        platform: serviceName,
+        accountName: result.accountName,
+        personaName: result.personaName
+      });
+
+      // Weryfikuj token
+      const verification = await verifyAuthConnection(serviceName);
+      
+      return {
+        ok: verification.ok,
+        userId: result.userId,
+        accountName: result.accountName,
+        personaName: result.personaName,
+        accountInfo: verification.accountInfo,
+        error: verification.error
+      };
+    }
+
+    // Dla innych platform - wymaga manual input
     if (result.requiresManualInput) {
       return result;
     }
