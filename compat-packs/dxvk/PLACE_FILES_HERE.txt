@@ -1,0 +1,3 @@
+Place DXVK files here:
+- d3d9.dll
+- dxgi.dll

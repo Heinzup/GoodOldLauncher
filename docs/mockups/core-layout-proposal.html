@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoodOldLauncher - Core Layout Proposal</title>
+    <style>
+      :root {
+        --bg: #0b1518;
+        --panel: #13272c;
+        --line: rgba(220, 250, 255, 0.18);
+        --text: #ecf5f6;
+        --text-soft: #b6d1d4;
+        --accent: #f2a655;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+        color: var(--text);
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 15% 15%, #1e4f58 0%, transparent 45%),
+          radial-gradient(circle at 85% 85%, #4a2a39 0%, transparent 35%),
+          var(--bg);
+      }
+
+      .layout {
+        width: min(1200px, 95vw);
+        margin: 24px auto;
+        display: grid;
+        gap: 16px;
+      }
+
+      .topbar,
+      .content > section {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(36, 70, 76, 0.55), rgba(17, 38, 43, 0.75));
+      }
+
+      .topbar {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .topbar h1 {
+        margin: 0;
+      }
+
+      .status {
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: #22434a;
+        color: var(--text-soft);
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 16px;
+      }
+
+      section {
+        padding: 14px;
+      }
+
+      h2 {
+        margin-top: 0;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 12px;
+      }
+
+      .game {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: #173137;
+      }
+
+      .thumb {
+        height: 84px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 8px;
+      }
+
+      .compat {
+        display: grid;
+        gap: 10px;
+      }
+
+      .mock-input {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 38px;
+        padding: 8px 10px;
+        background: #102327;
+        color: var(--text-soft);
+      }
+
+      .btn {
+        margin-top: 8px;
+        width: 100%;
+        border: 0;
+        border-radius: 10px;
+        min-height: 42px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #f2a655, #d8832f);
+        color: #1c1108;
+      }
+
+      @media (max-width: 920px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="topbar">
+        <div>
+          <h1>GoodOldLauncher</h1>
+          <div>Mockup Etap 1: Core + modularna biblioteka</div>
+        </div>
+        <div class="status">Status: gotowy do uruchamiania</div>
+      </div>
+
+      <div class="content">
+        <section>
+          <h2>Biblioteka gier</h2>
+          <div class="grid">
+            <article class="game">
+              <div class="thumb" style="background:#355f41"></div>
+              <strong>Half-Life 2</strong>
+              <div>Steam</div>
+            </article>
+            <article class="game">
+              <div class="thumb" style="background:#5f3d3d"></div>
+              <strong>Heroes III Complete</strong>
+              <div>GOG</div>
+            </article>
+            <article class="game">
+              <div class="thumb" style="background:#375f66"></div>
+              <strong>NFS Underground 2</strong>
+              <div>EA</div>
+            </article>
+          </div>
+        </section>
+
+        <section>
+          <h2>Profil kompatybilnosci</h2>
+          <div class="compat">
+            <div class="mock-input">Warstwa: d3d8to9 / dgVoodoo2 / DXVK</div>
+            <div class="mock-input">Borderless: ON/OFF</div>
+            <div class="mock-input">Argumenty: -windowed -nointro</div>
+            <button class="btn">Uruchom gre</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

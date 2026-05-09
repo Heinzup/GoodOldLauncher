@@ -1,0 +1,71 @@
+{
+  "name": "goodoldlauncher",
+  "version": "0.1.0",
+  "description": "Good Old Launcher - one place to scan and launch games from multiple launchers with compatibility profiles.",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "build:renderer": "vite build",
+    "build": "npm run build:renderer && cross-env ELECTRON_BUILDER_CACHE=.cache/electron-builder electron-builder",
+    "build:win": "npm run build:renderer && cross-env ELECTRON_BUILDER_CACHE=.cache/electron-builder electron-builder --win nsis",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Heinzup/GoodOldLauncher.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Heinzup/GoodOldLauncher/issues"
+  },
+  "homepage": "https://github.com/Heinzup/GoodOldLauncher#readme",
+  "build": {
+    "appId": "com.goodoldlauncher.app",
+    "productName": "Good Old Launcher",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "compat-packs/**/*",
+      "package.json"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^42.0.1",
+    "electron-builder": "^26.8.1",
+    "vite": "^8.0.11",
+    "wait-on": "^9.0.5"
+  }
+}

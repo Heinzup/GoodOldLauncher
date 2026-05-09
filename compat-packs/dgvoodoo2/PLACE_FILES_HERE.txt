@@ -1,0 +1,5 @@
+Place dgVoodoo2 files here:
+- D3D8.dll
+- D3D9.dll
+- D3DImm.dll
+- DDraw.dll
