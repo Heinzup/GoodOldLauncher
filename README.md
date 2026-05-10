@@ -1,56 +1,44 @@
 # Good Old Launcher
 
-PL: Good Old Launcher to nowoczesny launcher na Windows, ktory zbiera gry z roznych zrodel do jednej, czytelnej biblioteki. Koniec z przelaczaniem kilku aplikacji tylko po to, aby uruchomic jedna gre.
+Good Old Launcher is a modern Windows launcher that brings games from multiple sources into one clean, searchable library. Launch faster, stay organized, and use compatibility profiles for older titles without juggling multiple apps.
 
-EN: Good Old Launcher is a modern Windows launcher that collects games from multiple sources into one clean library. No more jumping between several apps just to launch a single game.
+## Why use it
 
-## Dlaczego warto / Why use it
+- One library for Steam and other supported sources
+- Fast search and simple filtering
+- Compatibility profiles for classic and problematic games
+- Built-in updater support
 
-- PL: Jedna biblioteka dla Steam i innych zrodel, szybkie wyszukiwanie oraz profile kompatybilnosci dla starszych gier.
-- EN: One library for Steam and other sources, fast search, and compatibility profiles for older titles.
+## Key features
 
-## Najwazniejsze funkcje / Key features
+- Local Steam library integration
+- Additional source integrations (Epic, GOG, EA)
+- Library scan, deduplication, and filtering
+- Quick game search
+- Compatibility layer profiles and launch arguments
+- Windows installer and in-app update flow
 
-- Integracja z lokalna biblioteka Steam
-- Integracje z dodatkowymi zrodlami (Epic, GOG, EA)
-- Skanowanie biblioteki, deduplikacja i filtrowanie
-- Szybkie wyszukiwanie gier
-- Profile kompatybilnosci dla uruchamiania klasycznych gier
-- Instalator Windows i aktualizacje w aplikacji
+## Screenshots
 
-## Screenshots / Zrzuty ekranu
+Add screenshots to `docs/screenshots/` and link them here.
 
-PL: Sekcja screenshotow jest przygotowana. Najlatwiej dodac obrazy do folderu `docs/screenshots/` i podlinkowac je tutaj.
-EN: The screenshots section is ready. Add images to `docs/screenshots/` and link them here.
+## Download
 
-## Pobieranie / Download
+Download the latest version from the Releases page.
 
-PL: Pobierz najnowsza wersje z zakladki Releases.
-EN: Download the latest version from the Releases page.
+- Installer: `Good-Old-Launcher-Setup-x.y.z.exe`
 
-- Instalator: Good-Old-Launcher-Setup-x.y.z.exe
+## Installation
 
-## Instalacja / Installation
+1. Run `Good-Old-Launcher-Setup-x.y.z.exe`.
+2. Complete the installer steps.
+3. On first launch, add your library paths and refresh the game list.
 
-1. Uruchom instalator `Good-Old-Launcher-Setup-x.y.z.exe`.
-2. Przejdz przez kroki instalatora.
-3. Po pierwszym uruchomieniu dodaj sciezki bibliotek i odswiez liste gier.
+## Updates
 
-## Aktualizacje / Updates
+The app supports auto-update and notifies you when a new version is available.
 
-PL: Aplikacja obsluguje auto-update i informuje o nowej wersji po publikacji.
-EN: The app supports auto-update and notifies you when a new version is available.
+## Project status
 
-## Local release (test przed produkcja)
-
-- Domyslnie (wersja z `package.json`): `npm run local-release`
-- Konkretna wersja: `npm run local-release -- -Version 0.1.3`
-- Konkretna wersja (krotko): `npm run local-release -- 0.1.3`
-- Wersja z prefiksem `v`: `npm run local-release -- v0.1.3`
-
-Skrypt tworzy artefakty tylko w jednym miejscu: `local-release/<wersja>/`.
-
-## Status projektu
-
-Projekt jest aktywnie rozwijany.
-Zgloszenia bledow i propozycje zmian sa mile widziane w Issues.
+The project is actively developed.
+Bug reports and feature suggestions are welcome in Issues.
