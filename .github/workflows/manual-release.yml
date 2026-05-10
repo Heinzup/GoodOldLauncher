@@ -32,8 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run build:win
+      - name: Build Windows installer (no auto-publish)
+        run: npm run build:renderer && npx electron-builder --win nsis --publish never
+        env:
+          ELECTRON_BUILDER_CACHE: .cache/electron-builder
 
       - name: Create git tag
         run: |
