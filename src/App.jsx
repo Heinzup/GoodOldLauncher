@@ -91,6 +91,7 @@ export default function App() {
   const [showNotInstalled, setShowNotInstalled] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [favorites, setFavorites] = useState(() => {
     try {
@@ -494,15 +495,10 @@ export default function App() {
           <button className="secondary-button" onClick={handleRefreshLibrary}>
             {t("refreshLibrary", language)}
           </button>
-          <button className="secondary-button" onClick={() => setShowScanModal(true)}>
-            {t("addPath", language) || "Dodaj lokalizację"}
+          <button className="secondary-button" onClick={() => setShowSettingsModal(true)}>
+            {t("settings", language)}
           </button>
-          <button className="secondary-button" onClick={() => setShowIntegrationsModal(true)}>
-            {t("integrations", language) || "Integracje"}
-          </button>
-          <button className="secondary-button" onClick={handleCheckForUpdates} disabled={isCheckingUpdates}>
-            {isCheckingUpdates ? t("checkingUpdates", language) : t("checkUpdates", language)}
-          </button>
+          <span className="topbar-game-count">{t("gamesFound", language)}: {filteredGames.length}</span>
           <select 
             className="language-select"
             value={language}
@@ -602,7 +598,6 @@ export default function App() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <span className="game-count">{filteredGames.length}</span>
             </div>
           </div>
           <div className="game-list">
@@ -655,7 +650,6 @@ export default function App() {
             })}
           </div>
         </section>
-
         <section className="panel details-panel">
           <h2>{t("gameDetails", language)}</h2>
           {selectedGame ? (
@@ -819,6 +813,47 @@ export default function App() {
         onSetField={handleSetIntegrationField}
         oauthLoading={oauthLoading}
       />
+
+      {showSettingsModal && (
+        <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t("settings", language)}</h2>
+              <button className="modal-close" onClick={() => setShowSettingsModal(false)}>×</button>
+            </div>
+            <div className="modal-body settings-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  setShowScanModal(true);
+                }}
+              >
+                {t("addPath", language)}
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowSettingsModal(false);
+                  setShowIntegrationsModal(true);
+                }}
+              >
+                {t("integrations", language)}
+              </button>
+              <button
+                className="secondary-button"
+                onClick={async () => {
+                  setShowSettingsModal(false);
+                  await handleCheckForUpdates();
+                }}
+                disabled={isCheckingUpdates}
+              >
+                {isCheckingUpdates ? t("checkingUpdates", language) : t("checkUpdates", language)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {contextMenu && contextGame ? (
         <div
