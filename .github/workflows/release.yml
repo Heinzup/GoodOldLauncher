@@ -47,6 +47,13 @@ jobs:
       - name: Publish updater assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }} · Windows Installer
+          body: |
+            ## Install
+            Use `Good Old Launcher Setup ... .exe` to install the app.
+
+            ## Updater metadata
+            `latest.yml` is required only for in-app auto-update.
           files: |
             dist-electron/Good Old Launcher Setup *.exe
             dist-electron/latest.yml
