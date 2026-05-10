@@ -2,6 +2,38 @@ function unsupported() {
   return { ok: false, error: "Native bridge unavailable." };
 }
 
+export async function windowMinimize() {
+  if (!window.goodOldLauncher?.windowMinimize) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.windowMinimize();
+}
+
+export async function windowToggleMaximize() {
+  if (!window.goodOldLauncher?.windowToggleMaximize) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.windowToggleMaximize();
+}
+
+export async function windowIsMaximized() {
+  if (!window.goodOldLauncher?.windowIsMaximized) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.windowIsMaximized();
+}
+
+export async function windowClose() {
+  if (!window.goodOldLauncher?.windowClose) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.windowClose();
+}
+
 export async function openGameFolder(game) {
   if (!window.goodOldLauncher?.openGameFolder) {
     return unsupported();

@@ -255,6 +255,7 @@ function createWindow() {
     minWidth: 1250,
     minHeight: 1020,
     show: false,
+    frame: false,
     autoHideMenuBar: true,
     backgroundColor: "#0d1a1c",
     webPreferences: {
@@ -306,6 +307,60 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
 }
+
+ipcMain.handle("window:minimize", async () => {
+  try {
+    if (!mainWindowRef || mainWindowRef.isDestroyed()) {
+      return { ok: false, error: "Window is not available." };
+    }
+    mainWindowRef.minimize();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle("window:toggleMaximize", async () => {
+  try {
+    if (!mainWindowRef || mainWindowRef.isDestroyed()) {
+      return { ok: false, error: "Window is not available." };
+    }
+
+    if (mainWindowRef.isMaximized()) {
+      mainWindowRef.unmaximize();
+    } else {
+      mainWindowRef.maximize();
+    }
+
+    return { ok: true, isMaximized: mainWindowRef.isMaximized() };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle("window:isMaximized", async () => {
+  try {
+    if (!mainWindowRef || mainWindowRef.isDestroyed()) {
+      return { ok: false, error: "Window is not available.", isMaximized: false };
+    }
+
+    return { ok: true, isMaximized: mainWindowRef.isMaximized() };
+  } catch (error) {
+    return { ok: false, error: error.message, isMaximized: false };
+  }
+});
+
+ipcMain.handle("window:close", async () => {
+  try {
+    if (!mainWindowRef || mainWindowRef.isDestroyed()) {
+      return { ok: false, error: "Window is not available." };
+    }
+    mainWindowRef.close();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
 
 ipcMain.handle("launcher:launchGame", async (_, launchConfig) => {
   const { executablePath, args = [], workingDirectory } = launchConfig ?? {};

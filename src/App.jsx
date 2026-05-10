@@ -12,7 +12,11 @@ import {
   onUpdateStatus,
   openGameFolder,
   uninstallGame,
-  verifyServiceConnection
+  verifyServiceConnection,
+  windowClose,
+  windowIsMaximized,
+  windowMinimize,
+  windowToggleMaximize
 } from "./core/native/nativeBridge";
 import { getProfile, saveProfile } from "./core/profiles/profileStore";
 import {
@@ -113,6 +117,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [customCoverInput, setCustomCoverInput] = useState("");
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
   const updatePromptShownRef = useRef(false);
 
 
@@ -286,6 +291,25 @@ export default function App() {
     setProfile(getProfile(selectedGame.id));
     setCustomCoverInput(getCustomCoverUrl(selectedGame.id) || "");
   }, [selectedGame]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function syncWindowState() {
+      const result = await windowIsMaximized();
+      if (mounted && result?.ok) {
+        setIsWindowMaximized(Boolean(result.isMaximized));
+      }
+    }
+
+    syncWindowState();
+    window.addEventListener("resize", syncWindowState);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("resize", syncWindowState);
+    };
+  }, []);
 
   function saveCustomCoverPath(gameId, rawPath) {
     const pathValue = (rawPath || "").trim();
@@ -575,8 +599,47 @@ export default function App() {
     return "✓";
   }
 
+  async function handleWindowToggleMaximize() {
+    const result = await windowToggleMaximize();
+    if (result?.ok) {
+      setIsWindowMaximized(Boolean(result.isMaximized));
+    }
+  }
+
   return (
     <div className="app-shell">
+      <div className="window-titlebar">
+        <div className="window-drag-region">
+          <span className="window-title-text">{t("appTitle", language)}</span>
+        </div>
+        <div className="window-controls">
+          <button
+            className="window-control-button"
+            onClick={() => windowMinimize()}
+            aria-label={t("windowMinimize", language)}
+            title={t("windowMinimize", language)}
+          >
+            −
+          </button>
+          <button
+            className="window-control-button"
+            onClick={handleWindowToggleMaximize}
+            aria-label={isWindowMaximized ? t("windowRestore", language) : t("windowMaximize", language)}
+            title={isWindowMaximized ? t("windowRestore", language) : t("windowMaximize", language)}
+          >
+            {isWindowMaximized ? "❐" : "□"}
+          </button>
+          <button
+            className="window-control-button close"
+            onClick={() => windowClose()}
+            aria-label={t("windowClose", language)}
+            title={t("windowClose", language)}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
       <header className="topbar">
         <div className="topbar-header">
           <h1>{t("appTitle", language)}</h1>
@@ -600,7 +663,7 @@ export default function App() {
             ))}
           </select>
           <button
-            className={`update-status-button ${updateState === "available" || updateState === "downloaded" ? "warning" : updateState === "not-available" ? "success" : updateState === "error" ? "error" : ""}`}
+            className={`update-status-button ${updateState === "available" || updateState === "downloaded" ? "warning" : updateState === "not-available" ? "success" : updateState === "error" ? "error" : updateState === "checking" || updateState === "downloading" ? "busy" : ""}`}
             onClick={handleUpdateButtonClick}
             onContextMenu={(event) => {
               event.preventDefault();
@@ -665,7 +728,7 @@ export default function App() {
         <section className="panel library-panel">
           <div className="library-header">
             <div className="library-title-row">
-                    className={`update-status-button ${updateState === "available" || updateState === "downloaded" ? "warning" : updateState === "not-available" ? "success" : updateState === "error" ? "error" : updateState === "checking" || updateState === "downloading" ? "busy" : ""}`}
+              <h2>{t("library", language)}</h2>
               <input
                 className="library-search"
                 type="text"

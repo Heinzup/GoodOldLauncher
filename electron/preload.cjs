@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("goodOldLauncher", {
+  windowMinimize: () => ipcRenderer.invoke("window:minimize"),
+  windowToggleMaximize: () => ipcRenderer.invoke("window:toggleMaximize"),
+  windowIsMaximized: () => ipcRenderer.invoke("window:isMaximized"),
+  windowClose: () => ipcRenderer.invoke("window:close"),
   launchGame: (launchConfig) => ipcRenderer.invoke("launcher:launchGame", launchConfig),
   scanLibraries: (payload) => ipcRenderer.invoke("launcher:scanLibraries", payload),
   openGameFolder: (game) => ipcRenderer.invoke("launcher:openGameFolder", game),

@@ -7,6 +7,7 @@
   --text-1: #a8b5c2;
   --accent: #2d9cdb;
   --accent-bright: #3daef5;
+  --accent-soft: rgba(61, 174, 245, 0.2);
   --danger: #ef4444;
   --success: #10b981;
   --highlight: #f97316;
@@ -32,6 +33,94 @@ body {
   max-width: 100%;
   margin: 0;
   padding: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(42px);
+}
+
+.app-shell::before {
+  width: 38vw;
+  height: 38vw;
+  top: -14vw;
+  right: -8vw;
+  background: radial-gradient(circle, rgba(61, 174, 245, 0.2) 0%, rgba(61, 174, 245, 0) 70%);
+}
+
+.app-shell::after {
+  width: 34vw;
+  height: 34vw;
+  bottom: -14vw;
+  left: -8vw;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.14) 0%, rgba(249, 115, 22, 0) 72%);
+}
+
+.window-titlebar {
+  height: 34px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background:
+    linear-gradient(90deg, rgba(61, 174, 245, 0.18), rgba(61, 174, 245, 0) 28%),
+    linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(8, 12, 16, 1));
+  border-bottom: 1px solid rgba(61, 174, 245, 0.22);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.window-drag-region {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.window-title-text {
+  font-size: 0.78rem;
+  color: var(--text-1);
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.window-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: stretch;
+}
+
+.window-control-button {
+  width: 44px;
+  border: 0;
+  border-left: 1px solid rgba(61, 174, 245, 0.12);
+  background: transparent;
+  color: var(--text-1);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.window-control-button:hover {
+  background: rgba(45, 156, 219, 0.18);
+  color: var(--text-0);
+}
+
+.window-control-button.close:hover {
+  background: rgba(239, 68, 68, 0.85);
+  color: #ffffff;
 }
 
 .topbar {
@@ -40,7 +129,9 @@ body {
   align-items: center;
   gap: 1rem;
   padding: 0.8rem 1.2rem;
-  background: linear-gradient(180deg, rgba(19, 24, 32, 0.95), rgba(10, 14, 18, 1));
+  background:
+    linear-gradient(90deg, rgba(61, 174, 245, 0.08), rgba(61, 174, 245, 0) 30%),
+    linear-gradient(180deg, rgba(19, 24, 32, 0.95), rgba(10, 14, 18, 1));
   border-bottom: 2px solid rgba(61, 174, 245, 0.2);
   border-radius: 0;
   flex-shrink: 0;
@@ -54,8 +145,8 @@ body {
 .topbar h1 {
   margin: 0;
   font-size: 1.8rem;
-  letter-spacing: 0.03em;
-  background: linear-gradient(135deg, #3daef5 0%, #2d9cdb 100%);
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #7ecfff 0%, #3daef5 46%, #2d9cdb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -165,7 +256,7 @@ body {
   border: 1px solid rgba(61, 174, 245, 0.4);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
-  background: rgba(45, 156, 219, 0.1);
+  background: linear-gradient(180deg, rgba(45, 156, 219, 0.14), rgba(45, 156, 219, 0.08));
   color: var(--accent-bright);
   cursor: pointer;
   font-weight: 600;
@@ -225,6 +316,18 @@ body {
   flex-direction: column;
   overflow: hidden;
   min-height: 100%;
+  position: relative;
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(61, 174, 245, 0.35), rgba(61, 174, 245, 0));
+  pointer-events: none;
 }
 
 .panel h2 {
@@ -322,7 +425,7 @@ body {
   border-color: rgba(61, 174, 245, 0.6);
   background: linear-gradient(135deg, rgba(45, 156, 219, 0.15), rgba(19, 24, 32, 0.8));
   box-shadow: 0 8px 24px rgba(45, 156, 219, 0.2), inset 0 1px 0 rgba(61, 174, 245, 0.2);
-  transform: translateY(-4px);
+  transform: translateY(-2px);
 }
 
 .game-tile:hover::before {
@@ -333,6 +436,24 @@ body {
   border-color: rgba(61, 174, 245, 0.9);
   background: linear-gradient(135deg, rgba(45, 156, 219, 0.25), rgba(19, 24, 32, 0.9));
   box-shadow: 0 12px 32px rgba(45, 156, 219, 0.3), inset 0 1px 0 rgba(61, 174, 245, 0.3);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(126, 207, 255, 0.9);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(61, 174, 245, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .game-tile > .game-cover {
