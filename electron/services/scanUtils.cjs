@@ -79,7 +79,11 @@ function findCoverImage(installDirectory, extraCandidates = []) {
   const candidates = [];
 
   if (isDirectorySafe(installDirectory)) {
-    const commonNames = ["cover", "capsule", "poster", "hero", "background", "splash"];
+    const commonNames = [
+      "cover", "capsule", "poster", "hero", "background", "splash",
+      "box", "boxart", "thumbnail", "banner", "artwork", "image",
+      "header", "library_hero", "library_600x900", "grid"
+    ];
     for (const baseName of commonNames) {
       for (const extension of imageExtensions) {
         candidates.push(path.join(installDirectory, `${baseName}${extension}`));
@@ -91,6 +95,21 @@ function findCoverImage(installDirectory, extraCandidates = []) {
       const lower = entry.toLowerCase();
       if (imageExtensions.some((extension) => lower.endsWith(extension))) {
         candidates.push(path.join(installDirectory, entry));
+      }
+    }
+
+    // Szukaj w podfolderach artwork / images / resources
+    const artSubfolders = ["artwork", "images", "resources", "media", "assets", "ui", "gfx"];
+    for (const subfolder of artSubfolders) {
+      const subPath = path.join(installDirectory, subfolder);
+      if (isDirectorySafe(subPath)) {
+        const subFiles = listFilesSafe(subPath);
+        for (const entry of subFiles) {
+          const lower = entry.toLowerCase();
+          if (imageExtensions.some((ext) => lower.endsWith(ext))) {
+            candidates.push(path.join(subPath, entry));
+          }
+        }
       }
     }
   }

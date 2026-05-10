@@ -6,6 +6,7 @@ import { installGame, loginService, logoutService, openGameFolder, uninstallGame
 import { getProfile, saveProfile } from "./core/profiles/profileStore";
 import {
   addScanPath,
+  removeScanPath,
   getLauncherSettings,
   saveLauncherSettings
 } from "./core/settings/launcherSettingsStore";
@@ -71,6 +72,7 @@ export default function App() {
     }
   });
   const [oauthLoading, setOAuthLoading] = useState(null); // null | platform name
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   const compatOptions = [
@@ -123,15 +125,17 @@ export default function App() {
   );
 
   const filteredGames = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return games.filter((game) => {
       const sourceMatch = sourceFilter === "all" || game.source === sourceFilter;
       const installedMatch =
         installedFilter === "all" ||
         (installedFilter === "installed" && game.installed) ||
         (installedFilter === "notInstalled" && !game.installed);
-      return sourceMatch && installedMatch;
+      const searchMatch = query.length < 2 || (game.title || "").toLowerCase().includes(query);
+      return sourceMatch && installedMatch && searchMatch;
     });
-  }, [games, sourceFilter, installedFilter]);
+  }, [games, sourceFilter, installedFilter, searchQuery]);
 
   const favoriteGames = useMemo(() => {
     return games.filter((game) => favorites.includes(game.id)).slice(0, 8);
@@ -216,6 +220,11 @@ export default function App() {
     setSettings(next);
   }
 
+  function handleRemovePath(pathType, pathValue) {
+    const next = removeScanPath(pathType, pathValue);
+    setSettings(next);
+  }
+
   function handleSetIntegration(platform, connected) {
     const newIntegrations = {
       ...integrations,
@@ -269,6 +278,11 @@ export default function App() {
 
       // Logowanie powiodło się (Steam auto-detected LUB token zweryfikowany)
       handleSetIntegration(platform, true);
+
+      // Po zalogowaniu Steam - odśwież bibliotekę by wczytać gry + playtime
+      if (platform.toLowerCase() === "steam") {
+        loadLibrary();
+      }
       
       // Pokazz info o koncie jeśli dostępne
       const accountName = result.accountName || result.personaName;
@@ -425,6 +439,13 @@ export default function App() {
         <section className="panel library-panel">
           <div className="library-header">
             <h2>{t("library", language)}</h2>
+            <input
+              className="library-search"
+              type="text"
+              placeholder="Szukaj gry..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <div className="library-filters">
               <select
                 className="filter-select"
@@ -510,6 +531,12 @@ export default function App() {
                     <span>{t("status", language)}</span>
                     <strong>{selectedGame.installed ? t("installed", language) : t("notDetected", language)}</strong>
                   </div>
+                  {selectedGame.playtimeHours > 0 && (
+                    <div className="details-row">
+                      <span>Czas gry</span>
+                      <strong>{selectedGame.playtimeHours} godz.</strong>
+                    </div>
+                  )}
                 </div>
                 <button
                   className={`favorite-button ${favorites.includes(selectedGame.id) ? "active" : ""}`}
@@ -590,6 +617,7 @@ export default function App() {
         onClose={() => setShowScanModal(false)}
         settings={settings}
         onAddPath={handleAddPath}
+        onRemovePath={handleRemovePath}
         onToggleDemo={toggleDemoProvider}
       />
 

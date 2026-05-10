@@ -56,3 +56,15 @@ export function addScanPath(scanKey, value) {
 
   return settings;
 }
+
+export function removeScanPath(scanKey, value) {
+  const settings = getLauncherSettings();
+  if (!Array.isArray(settings.scan[scanKey])) {
+    return settings;
+  }
+
+  const normalized = String(value || "").trim();
+  settings.scan[scanKey] = settings.scan[scanKey].filter((p) => p !== normalized);
+  saveLauncherSettings(settings);
+  return settings;
+}

@@ -33,14 +33,16 @@ function normalizeTitle(value) {
 }
 
 function dedupeKey(game) {
-  const executableKey = normalizeLocalPath(game.executablePath);
-  if (executableKey) {
-    return `exe:${executableKey}`;
-  }
-
+  // installDirectory jako priorytet - pozwala matchować Steam (steam://run) z Custom (exe)
+  // bo obie wskazują na ten sam folder na dysku
   const installKey = normalizeLocalPath(game.installDirectory);
   if (installKey) {
     return `dir:${installKey}`;
+  }
+
+  const executableKey = normalizeLocalPath(game.executablePath);
+  if (executableKey) {
+    return `exe:${executableKey}`;
   }
 
   return `title:${normalizeTitle(game.title)}`;
@@ -65,7 +67,7 @@ function mergeGame(existingGame, incomingGame) {
 }
 
 function scanAllLibraries(scanConfig = {}) {
-  const steam = scanSteamLibrary(scanConfig.steamRoots || []);
+  const steam = scanSteamLibrary(scanConfig.steamRoots || [], scanConfig.steamUserId || null);
   const epic = scanEpicLibrary(scanConfig.epicManifestRoots || []);
   const gog = scanGogLibrary(scanConfig.gogRoots || []);
   const ea = scanEaLibrary(scanConfig.eaRoots || []);

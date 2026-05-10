@@ -197,13 +197,41 @@ function createWindow() {
     }
   });
 
+  let wasShown = false;
+  const showWindow = () => {
+    if (!wasShown && !mainWindow.isDestroyed()) {
+      wasShown = true;
+      mainWindow.show();
+    }
+  };
+
   mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+    showWindow();
   });
+
+  mainWindow.webContents.once("did-finish-load", () => {
+    showWindow();
+    if (isDev) {
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+    }
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_, errorCode, errorDescription, validatedURL) => {
+    console.error("[Window] did-fail-load:", { errorCode, errorDescription, validatedURL });
+    showWindow();
+  });
+
+  mainWindow.webContents.on("render-process-gone", (_, details) => {
+    console.error("[Window] render-process-gone:", details);
+    showWindow();
+  });
+
+  setTimeout(() => {
+    showWindow();
+  }, 1500);
 
   if (isDev) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: "detach" });
     return;
   }
 
@@ -246,15 +274,29 @@ ipcMain.handle("launcher:launchGame", async (_, launchConfig) => {
 
 ipcMain.handle("launcher:scanLibraries", async (_, payload) => {
   try {
+    // Sprawdź czy mamy zapisany SteamID z integracji
+    let steamUserId = null;
+    try {
+      const steamToken = TokenStore.getToken("Steam");
+      if (steamToken?.token) {
+        steamUserId = steamToken.token;
+      }
+    } catch {
+      // brak tokenu - OK
+    }
+    console.log("[ScanLibraries] steamUserId z TokenStore:", steamUserId || "(brak)");
+
     const scanConfig = {
       steamRoots: Array.isArray(payload?.steamRoots) ? payload.steamRoots : [],
       epicManifestRoots: Array.isArray(payload?.epicManifestRoots) ? payload.epicManifestRoots : [],
       gogRoots: Array.isArray(payload?.gogRoots) ? payload.gogRoots : [],
       eaRoots: Array.isArray(payload?.eaRoots) ? payload.eaRoots : [],
-      customGameRoots: Array.isArray(payload?.customGameRoots) ? payload.customGameRoots : []
+      customGameRoots: Array.isArray(payload?.customGameRoots) ? payload.customGameRoots : [],
+      steamUserId
     };
 
     const data = scanAllLibraries(scanConfig);
+    console.log("[ScanLibraries] Znaleziono gier:", data.games?.length, "| diagnostics:", JSON.stringify(data.diagnostics));
     return { ok: true, ...data };
   } catch (error) {
     return { ok: false, error: error.message };
@@ -325,14 +367,14 @@ ipcMain.handle("launcher:loginService", async (_, serviceName) => {
       // Weryfikuj token
       const verification = await verifyAuthConnection(serviceName);
       
-      return {
-        ok: verification.ok,
-        userId: result.userId,
-        accountName: result.accountName,
-        personaName: result.personaName,
-        accountInfo: verification.accountInfo,
-        error: verification.error
-      };
+        return {
+          ok: verification.ok,
+          autoDetected: true,
+          userId: result.userId,
+          accountName: result.accountName,
+          personaName: result.personaName,
+          accountInfo: verification.accountInfo
+        };
     }
 
     // Dla innych platform - wymaga manual input

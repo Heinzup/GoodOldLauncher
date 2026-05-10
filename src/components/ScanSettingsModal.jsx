@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function ScanSettingsModal({ isOpen, language, t, onClose, settings, onAddPath, onToggleDemo }) {
+export default function ScanSettingsModal({ isOpen, language, t, onClose, settings, onAddPath, onRemovePath, onToggleDemo }) {
   const [pathType, setPathType] = useState("steamRoots");
   const [pathValue, setPathValue] = useState("");
 
@@ -78,7 +78,16 @@ export default function ScanSettingsModal({ isOpen, language, t, onClose, settin
                 <strong>{option.label}</strong>
                 <ul>
                   {(settings.scan[option.value] || []).map((pathValue) => (
-                    <li key={`${option.value}-${pathValue}`}>{pathValue}</li>
+                    <li key={`${option.value}-${pathValue}`} className="path-list-item">
+                      <span className="path-list-value">{pathValue}</span>
+                      <button
+                        className="path-remove-btn"
+                        title="Usuń lokalizację"
+                        onClick={() => onRemovePath(option.value, pathValue)}
+                      >
+                        ✕
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </div>

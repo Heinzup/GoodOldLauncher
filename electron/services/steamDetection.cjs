@@ -37,7 +37,7 @@ function parseVDF(content) {
       continue;
     }
 
-    // Key-value para
+    // Key-value para z cudzysłowami: "key" "value"
     const match = trimmed.match(/^"([^"]+)"\s+"([^"]+)"$/);
     if (match) {
       const [, key, value] = match;
@@ -47,7 +47,8 @@ function parseVDF(content) {
       continue;
     }
 
-    // Samotny key
+    // Samotny key - może być w cudzysłowach: "users" lub "76561198040952457"
+    // Regex: ^"([^"]+)"$ -> łapie "anything" bez cudzysłowów wewnątrz
     const keyMatch = trimmed.match(/^"([^"]+)"$/);
     if (keyMatch) {
       currentKey = keyMatch[1];
@@ -72,26 +73,40 @@ function getSteamInstallPath() {
         path.join(os.homedir(), "AppData", "Local", "Steam") // Portable Steam
       ];
 
+      console.log("[SteamDetection] Szukam Steam na Windows...");
       for (const p of defaultPaths) {
-        if (fs.existsSync(path.join(p, "config", "LoginUsers.vdf"))) {
+        console.log("[SteamDetection] Sprawdzam:", p);
+        if (fs.existsSync(p)) {
+          console.log("[SteamDetection] ✓ Steam folder istnieje:", p);
+          const loginUsersPath = path.join(p, "config", "LoginUsers.vdf");
+          if (fs.existsSync(loginUsersPath)) {
+            console.log("[SteamDetection] ✓ LoginUsers.vdf znaleziony!");
+            return p;
+          } else {
+            console.log("[SteamDetection] LoginUsers.vdf nie znaleziony w", loginUsersPath);
+          }
+        }
+      }
+      console.error("[SteamDetection] Steam nie znaleziony w żadnej lokalizacji Windows");
+    } else {
+      // Linux/Mac
+      const homeDir = os.homedir();
+      const linuxPaths = [
+        path.join(homeDir, ".steam/steam"),
+        path.join(homeDir, ".steam/root"),
+        path.join(homeDir, ".local/share/Steam"),
+        path.join(homeDir, "Steam")
+      ];
+
+      console.log("[SteamDetection] Szukam Steam na Linux/Mac...");
+      for (const p of linuxPaths) {
+        console.log("[SteamDetection] Sprawdzam:", p);
+        if (fs.existsSync(p)) {
+          console.log("[SteamDetection] ✓ Steam folder istnieje:", p);
           return p;
         }
       }
-    }
-
-    // Linux/Mac
-    const homeDir = os.homedir();
-    const linuxPaths = [
-      path.join(homeDir, ".steam/steam"),
-      path.join(homeDir, ".steam/root"),
-      path.join(homeDir, ".local/share/Steam"),
-      path.join(homeDir, "Steam")
-    ];
-
-    for (const p of linuxPaths) {
-      if (fs.existsSync(p)) {
-        return p;
-      }
+      console.error("[SteamDetection] Steam nie znaleziony w żadnej lokalizacji Linux/Mac");
     }
 
     return null;
@@ -110,33 +125,65 @@ function getCurrentSteamUser(steamPath) {
   try {
     const loginUsersPath = path.join(steamPath, "config", "LoginUsers.vdf");
 
+    console.log("[SteamDetection] Szukam:", loginUsersPath);
+
     if (!fs.existsSync(loginUsersPath)) {
-      console.error("[SteamDetection] LoginUsers.vdf nie znaleziony:", loginUsersPath);
+      console.error("[SteamDetection] Plik nie istnieje:", loginUsersPath);
       return null;
     }
 
     const content = fs.readFileSync(loginUsersPath, "utf-8");
+    console.log("[SteamDetection] Plik odczytany, rozmiar:", content.length, "bajtów");
+    
+    // Debug: Wyświetl pierwsze 500 znaków
+    console.log("[SteamDetection] Zawartość (pierwsze 500 zn):\n", content.substring(0, 500));
+
     const vdfData = parseVDF(content);
+    console.log("[SteamDetection] VDF sparsowany. Top-level keys:", Object.keys(vdfData));
 
-    // LoginUsers struktura: { "LoginUsers": { "SteamID64String": { ... }, ... } }
-    const loginUsers = vdfData.LoginUsers || {};
+    // Struktura VDF LoginUsers:
+    // "users"
+    // {
+    //   "76561198xxxxxxx"
+    //   {
+    //     "AccountName" "username"
+    //     "MostRecent"  "1"
+    //     ...
+    //   }
+    // }
 
-    // Szukaj użytkownika z flagą MostRecent
+    // Szukaj sekcji users (może być "users" lub "LoginUsers" w zależności od wersji)
+    const loginUsers = vdfData.users || vdfData.LoginUsers;
+    if (!loginUsers || typeof loginUsers !== "object") {
+      console.error("[SteamDetection] users/LoginUsers section nie znaleziona. Top-level keys:", Object.keys(vdfData));
+      return null;
+    }
+
+    console.log("[SteamDetection] Znaleziono sekcję users. Liczba userów:", Object.keys(loginUsers).length);
+
+    // Szukaj użytkownika z MostRecent = "1"
     for (const [steamIdStr, userInfo] of Object.entries(loginUsers)) {
-      if (typeof userInfo === "object" && userInfo.MostRecent === "1") {
-        return {
-          steamId: steamIdStr,
-          accountName: userInfo.AccountName || "",
-          personaName: userInfo.PersonaName || "",
-          timestamp: userInfo.Timestamp || ""
-        };
+      if (typeof userInfo === "object") {
+        console.log("[SteamDetection] User:", steamIdStr, "- MostRecent:", userInfo.MostRecent, "- AccountName:", userInfo.AccountName);
+        
+        if (userInfo.MostRecent === "1") {
+          console.log("[SteamDetection] ✓ Znaleziony MostRecent user!");
+          return {
+            steamId: steamIdStr,
+            accountName: userInfo.AccountName || "",
+            personaName: userInfo.PersonaName || "",
+            timestamp: userInfo.Timestamp || ""
+          };
+        }
       }
     }
 
     // Jeśli brak MostRecent, weź pierwszego
+    console.log("[SteamDetection] Fallback: brak MostRecent, szukam pierwszego user'a");
     const firstUser = Object.entries(loginUsers).find(([_, v]) => typeof v === "object");
     if (firstUser) {
       const [steamIdStr, userInfo] = firstUser;
+      console.log("[SteamDetection] ✓ Fallback user znaleziony:", steamIdStr);
       return {
         steamId: steamIdStr,
         accountName: userInfo.AccountName || "",
@@ -145,6 +192,7 @@ function getCurrentSteamUser(steamPath) {
       };
     }
 
+    console.error("[SteamDetection] Brak user'ów do fallback");
     return null;
   } catch (error) {
     console.error("[SteamDetection] Błąd parsowania LoginUsers.vdf:", error);
@@ -158,12 +206,16 @@ function getCurrentSteamUser(steamPath) {
  */
 async function autoDetectSteamUser() {
   try {
+    console.log("[SteamDetection] === POCZĄTEK DETEKCJI STEAM ===");
+    
     const steamPath = getSteamInstallPath();
 
     if (!steamPath) {
+      const msg = "Steam nie jest zainstalowany na tym komputerze.";
+      console.error("[SteamDetection]", msg);
       return {
         ok: false,
-        error: "Steam nie jest zainstalowany na tym komputerze."
+        error: msg
       };
     }
 
@@ -172,13 +224,16 @@ async function autoDetectSteamUser() {
     const userInfo = getCurrentSteamUser(steamPath);
 
     if (!userInfo) {
+      const msg = "Brak zalogowanego użytkownika Steam. Zaloguj się w aplikacji Steam.";
+      console.error("[SteamDetection]", msg);
       return {
         ok: false,
-        error: "Brak zalogowanego użytkownika Steam. Zaloguj się w aplikacji Steam."
+        error: msg
       };
     }
 
-    console.log("[SteamDetection] Znaleziony użytkownik Steam:", userInfo.accountName);
+    console.log("[SteamDetection] ✓ Znaleziony użytkownik Steam:", userInfo.accountName);
+    console.log("[SteamDetection] === DETEKCJA ZAKOŃCZONA ===");
 
     return {
       ok: true,
@@ -190,7 +245,7 @@ async function autoDetectSteamUser() {
     console.error("[SteamDetection] Błąd:", error);
     return {
       ok: false,
-      error: error.message
+      error: error.message || "Nieznany błąd podczas detekcji Steam"
     };
   }
 }
