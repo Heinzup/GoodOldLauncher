@@ -1,0 +1,53 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g., v0.1.1)"
+        required: true
+        type: string
+      release_name:
+        description: "Release name/title (optional)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  manual-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run build:win
+
+      - name: Create git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag ${{ inputs.version }}
+          git push origin ${{ inputs.version }}
+
+      - name: Publish updater assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.release_name || inputs.version }}
+          files: |
+            dist-electron/Good Old Launcher Setup *.exe
+            dist-electron/Good Old Launcher Setup *.exe.blockmap
+            dist-electron/latest.yml
