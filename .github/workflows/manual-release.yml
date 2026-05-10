@@ -78,5 +78,4 @@ jobs:
           name: ${{ inputs.release_name || steps.normalize.outputs.tag }}
           files: |
             dist-electron/Good Old Launcher Setup *.exe
-            dist-electron/Good Old Launcher Setup *.exe.blockmap
             dist-electron/latest.yml

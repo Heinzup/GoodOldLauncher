@@ -112,11 +112,18 @@ export default function App() {
 
 
   const compatOptions = [
-    { value: "none", label: t("none", language) },
-    { value: "d3d8to9", label: "d3d8to9" },
-    { value: "dgvoodoo2", label: "dgVoodoo2" },
-    { value: "dxvk", label: "DXVK" }
+    { value: "none", label: t("compatOptionNone", language) },
+    { value: "d3d8to9", label: t("compatOptionD3D8to9", language) },
+    { value: "dgvoodoo2", label: t("compatOptionDgVoodoo2", language) },
+    { value: "dxvk", label: t("compatOptionDxvk", language) }
   ];
+
+  const compatHelpByValue = {
+    none: t("compatHelpNone", language),
+    d3d8to9: t("compatHelpD3D8to9", language),
+    dgvoodoo2: t("compatHelpDgVoodoo2", language),
+    dxvk: t("compatHelpDxvk", language)
+  };
 
   const sourceOptions = [
     { value: "all", label: t("all", language) },
@@ -557,14 +564,17 @@ export default function App() {
       <main className="content-grid">
         <section className="panel library-panel">
           <div className="library-header">
-            <h2>{t("library", language)}</h2>
-            <input
-              className="library-search"
-              type="text"
-              placeholder={t("searchPlaceholder", language)}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <div className="library-title-row">
+              <h2>{t("library", language)}</h2>
+              <input
+                className="library-search"
+                type="text"
+                placeholder={t("searchPlaceholder", language)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label={t("searchPlaceholder", language)}
+              />
+            </div>
             <div className="library-filters">
               <select
                 className="filter-select"
@@ -736,6 +746,7 @@ export default function App() {
                   </option>
                 ))}
               </select>
+              <p className="compat-help-text">{compatHelpByValue[profile.compatLayer] || compatHelpByValue.none}</p>
 
               <label className="checkbox-row" htmlFor="enableBorderless">
                 <input

@@ -49,5 +49,4 @@ jobs:
         with:
           files: |
             dist-electron/Good Old Launcher Setup *.exe
-            dist-electron/Good Old Launcher Setup *.exe.blockmap
             dist-electron/latest.yml
