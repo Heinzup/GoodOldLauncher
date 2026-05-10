@@ -255,7 +255,7 @@ export default function App() {
   }, [games, sourceFilter, showInstalled, showNotInstalled, searchQuery]);
 
   const favoriteGames = useMemo(() => {
-    return games.filter((game) => favorites.includes(game.id)).slice(0, 8);
+    return games.filter((game) => favorites.includes(game.id));
   }, [games, favorites]);
 
   const contextGame = useMemo(() => {
@@ -533,6 +533,7 @@ export default function App() {
                   key={game.id}
                   className={`favorite-tile ${selectedGameId === game.id ? "selected" : ""}`}
                   onClick={() => setSelectedGameId(game.id)}
+                  data-title={game.title}
                   title={game.title}
                 >
                   <span className="favorite-cover">
@@ -554,7 +555,6 @@ export default function App() {
                       <span style={{ backgroundColor: game.coverColor }} />
                     )}
                   </span>
-                  <div className="favorite-title">{game.title}</div>
                 </button>
               );
             })}

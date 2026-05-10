@@ -455,9 +455,9 @@ input[type="checkbox"] {
 .favorites-bar {
   background: linear-gradient(90deg, rgba(45, 156, 219, 0.1), rgba(45, 156, 219, 0.05));
   border-bottom: 1px solid rgba(61, 174, 245, 0.2);
-  padding: 1rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   flex-shrink: 0;
 }
@@ -472,11 +472,17 @@ input[type="checkbox"] {
 }
 
 .favorites-list {
-  display: flex;
-  gap: 0.8rem;
+  --favorite-tile-width: 74px;
+  --favorite-tile-height: 50px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, var(--favorite-tile-height));
+  grid-auto-columns: var(--favorite-tile-width);
+  gap: 0.45rem;
   overflow-x: auto;
+  overflow-y: hidden;
   flex: 1;
-  padding-right: 1rem;
+  padding: 0 0.6rem 0.2rem 0;
 }
 
 .favorites-list::-webkit-scrollbar {
@@ -494,18 +500,41 @@ input[type="checkbox"] {
 }
 
 .favorite-tile {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.6rem;
+  justify-content: center;
+  padding: 0.25rem;
   border: 1px solid rgba(61, 174, 245, 0.3);
   border-radius: 8px;
   background: rgba(45, 156, 219, 0.05);
   cursor: pointer;
   transition: all 0.2s ease;
-  flex-shrink: 0;
-  min-width: 80px;
+  width: var(--favorite-tile-width);
+  height: var(--favorite-tile-height);
+}
+
+.favorite-tile::after {
+  content: attr(data-title);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: rgba(10, 14, 18, 0.95);
+  border: 1px solid rgba(61, 174, 245, 0.5);
+  color: var(--text-0);
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 15;
+}
+
+.favorite-tile:hover::after {
+  opacity: 1;
 }
 
 .favorite-tile:hover {
@@ -520,9 +549,9 @@ input[type="checkbox"] {
 }
 
 .favorite-cover {
-  width: 60px;
-  height: 80px;
-  border-radius: 6px;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
   overflow: hidden;
   border: 1px solid rgba(61, 174, 245, 0.2);
   display: flex;
@@ -536,17 +565,6 @@ input[type="checkbox"] {
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.favorite-title {
-  font-size: 0.75rem;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  width: 100%;
 }
 
 /* Library Panel Improvements */
