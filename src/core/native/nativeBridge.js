@@ -10,6 +10,14 @@ export async function openGameFolder(game) {
   return window.goodOldLauncher.openGameFolder(game);
 }
 
+export async function pickCoverImage() {
+  if (!window.goodOldLauncher?.pickCoverImage) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.pickCoverImage();
+}
+
 export async function installGame(game) {
   if (!window.goodOldLauncher?.installGame) {
     return unsupported();

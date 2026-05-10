@@ -96,6 +96,63 @@ body {
   white-space: nowrap;
 }
 
+.update-status-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(61, 174, 245, 0.35);
+  background: rgba(45, 156, 219, 0.1);
+  color: var(--accent-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-weight: 800;
+  padding: 0;
+}
+
+.update-status-button:hover {
+  background: rgba(45, 156, 219, 0.2);
+  border-color: rgba(61, 174, 245, 0.75);
+  transform: translateY(-1px);
+}
+
+.update-status-button.success {
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.update-status-button.warning {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.update-status-button.error {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.update-status-button.busy {
+  color: var(--accent-bright);
+  border-color: rgba(61, 174, 245, 0.5);
+  background: rgba(45, 156, 219, 0.15);
+}
+
+.update-status-button:disabled {
+  cursor: progress;
+  opacity: 0.95;
+}
+
+.update-status-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;

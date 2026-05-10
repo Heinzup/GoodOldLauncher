@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { app, BrowserWindow, ipcMain, shell, protocol } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, protocol, dialog } = require("electron");
 const { spawn } = require("node:child_process");
 const { URL } = require("node:url");
 const { autoUpdater } = require("electron-updater");
@@ -385,6 +385,28 @@ ipcMain.handle("launcher:openGameFolder", async (_, game) => {
 
     shell.showItemInFolder(executablePath);
     return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle("launcher:pickCoverImage", async () => {
+  try {
+    const focusedWindow = BrowserWindow.getFocusedWindow() || mainWindowRef;
+    const result = await dialog.showOpenDialog(focusedWindow, {
+      title: "Wybierz okładkę gry",
+      properties: ["openFile"],
+      filters: [
+        { name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "bmp", "ico"] },
+        { name: "All Files", extensions: ["*"] }
+      ]
+    });
+
+    if (result.canceled || !Array.isArray(result.filePaths) || result.filePaths.length === 0) {
+      return { ok: true, canceled: true };
+    }
+
+    return { ok: true, canceled: false, path: result.filePaths[0] };
   } catch (error) {
     return { ok: false, error: error.message };
   }

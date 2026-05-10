@@ -6,6 +6,7 @@ import {
   checkForUpdates,
   installDownloadedUpdate,
   installGame,
+  pickCoverImage,
   loginService,
   logoutService,
   onUpdateStatus,
@@ -93,6 +94,7 @@ export default function App() {
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [updateState, setUpdateState] = useState("idle"); // idle | checking | available | not-available | downloading | downloaded | error | dev-skip
   const [favorites, setFavorites] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY_FAVORITES)) || [];
@@ -110,6 +112,7 @@ export default function App() {
   const [oauthLoading, setOAuthLoading] = useState(null); // null | platform name
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [customCoverInput, setCustomCoverInput] = useState("");
   const updatePromptShownRef = useRef(false);
 
 
@@ -156,31 +159,37 @@ export default function App() {
       }
 
       if (payload.status === "checking") {
+        setUpdateState("checking");
         setIsCheckingUpdates(true);
         setStatusText(payload.message || t("checkingUpdates", language));
       }
 
       if (payload.status === "downloading") {
+        setUpdateState("downloading");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updateDownloading", language));
       }
 
       if (payload.status === "available") {
+        setUpdateState("available");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updateDownloading", language));
       }
 
       if (payload.status === "not-available") {
+        setUpdateState("not-available");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("noUpdates", language));
       }
 
       if (payload.status === "dev-skip") {
+        setUpdateState("dev-skip");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updatesDisabledDev", language));
       }
 
       if (payload.status === "downloaded") {
+        setUpdateState("downloaded");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updateReady", language));
 
@@ -194,6 +203,7 @@ export default function App() {
       }
 
       if (payload.status === "error") {
+        setUpdateState("error");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updateError", language));
       }
@@ -204,10 +214,12 @@ export default function App() {
   }, [language]);
 
   async function handleCheckForUpdates() {
+    setUpdateState("checking");
     setIsCheckingUpdates(true);
     setStatusText(t("checkingUpdates", language));
     const result = await checkForUpdates();
     if (!result?.ok) {
+      setUpdateState("error");
       setIsCheckingUpdates(false);
       setStatusText(result?.error || t("updateError", language));
       return;
@@ -216,6 +228,7 @@ export default function App() {
     const terminalStatuses = new Set(["not-available", "downloaded", "error", "dev-skip"]);
     if (terminalStatuses.has(result.status)) {
       setIsCheckingUpdates(false);
+      setUpdateState(result.status);
       if (result.message) {
         setStatusText(result.message);
       }
@@ -271,7 +284,23 @@ export default function App() {
       return;
     }
     setProfile(getProfile(selectedGame.id));
+    setCustomCoverInput(getCustomCoverUrl(selectedGame.id) || "");
   }, [selectedGame]);
+
+  function saveCustomCoverPath(gameId, rawPath) {
+    const pathValue = (rawPath || "").trim();
+    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
+    if (pathValue) {
+      customCovers[gameId] = pathValue;
+    } else {
+      delete customCovers[gameId];
+    }
+    localStorage.setItem(STORAGE_KEY_CUSTOM_COVERS, JSON.stringify(customCovers));
+    setCoverFallbackIndex((current) => ({
+      ...current,
+      [gameId]: 0
+    }));
+  }
 
   function toggleFavorite(gameId) {
     const newFavorites = favorites.includes(gameId)
@@ -484,6 +513,68 @@ export default function App() {
     });
   }
 
+  function handleContextMenuOpen(event, game) {
+    handleGameContextMenu(event, game);
+  }
+
+  async function handleUpdateButtonClick() {
+    if (updateState === "available" || updateState === "downloading" || updateState === "checking") {
+      await handleCheckForUpdates();
+      return;
+    }
+
+    if (updateState === "downloaded") {
+      await installDownloadedUpdate();
+      return;
+    }
+
+    await handleCheckForUpdates();
+  }
+
+  function getUpdateButtonLabel() {
+    if (updateState === "available" || updateState === "downloaded") {
+      return t("updateAvailable", language);
+    }
+
+    if (updateState === "not-available") {
+      return t("updateUpToDate", language);
+    }
+
+    if (updateState === "dev-skip") {
+      return t("updatesDisabledDev", language);
+    }
+
+    if (updateState === "error") {
+      return t("updateError", language);
+    }
+
+    return t("checkUpdates", language);
+  }
+
+  function getUpdateButtonIcon() {
+    if (updateState === "available" || updateState === "downloaded") {
+      return "⚠";
+    }
+
+    if (updateState === "not-available") {
+      return "✓";
+    }
+
+    if (updateState === "dev-skip") {
+      return "D";
+    }
+
+    if (updateState === "error") {
+      return "!";
+    }
+
+    if (updateState === "downloading" || updateState === "checking") {
+      return "…";
+    }
+
+    return "✓";
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -508,7 +599,19 @@ export default function App() {
               <option key={code} value={code}>{name}</option>
             ))}
           </select>
-          <div className="status-pill">{statusText}</div>
+          <button
+            className={`update-status-button ${updateState === "available" || updateState === "downloaded" ? "warning" : updateState === "not-available" ? "success" : updateState === "error" ? "error" : ""}`}
+            onClick={handleUpdateButtonClick}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              handleCheckForUpdates();
+            }}
+            title={getUpdateButtonLabel()}
+            aria-label={getUpdateButtonLabel()}
+            disabled={isCheckingUpdates && updateState === "checking"}
+          >
+            <span className="update-status-icon">{getUpdateButtonIcon()}</span>
+          </button>
         </div>
       </header>
 
@@ -529,8 +632,8 @@ export default function App() {
                   key={game.id}
                   className={`favorite-tile ${selectedGameId === game.id ? "selected" : ""}`}
                   onClick={() => setSelectedGameId(game.id)}
+                  onContextMenu={(event) => handleContextMenuOpen(event, game)}
                   data-title={game.title}
-                  title={game.title}
                 >
                   <span className="favorite-cover">
                     {showImage ? (
@@ -562,7 +665,7 @@ export default function App() {
         <section className="panel library-panel">
           <div className="library-header">
             <div className="library-title-row">
-              <h2>{t("library", language)}</h2>
+                    className={`update-status-button ${updateState === "available" || updateState === "downloaded" ? "warning" : updateState === "not-available" ? "success" : updateState === "error" ? "error" : updateState === "checking" || updateState === "downloading" ? "busy" : ""}`}
               <input
                 className="library-search"
                 type="text"
@@ -693,34 +796,35 @@ export default function App() {
                   id="customCoverPath"
                   type="text"
                   placeholder={t("customCoverPlaceholder", language)}
-                  defaultValue={getCustomCoverUrl(selectedGame.id) || ""}
+                  value={customCoverInput}
+                  onChange={(event) => setCustomCoverInput(event.target.value)}
                   onBlur={(event) => {
-                    const path = event.currentTarget.value.trim();
-                    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
-                    if (path) {
-                      customCovers[selectedGame.id] = path;
-                    } else {
-                      delete customCovers[selectedGame.id];
-                    }
-                    localStorage.setItem(STORAGE_KEY_CUSTOM_COVERS, JSON.stringify(customCovers));
-                    // Force re-render by resetting fallback index
-                    setCoverFallbackIndex((current) => ({
-                      ...current,
-                      [selectedGame.id]: 0
-                    }));
+                    saveCustomCoverPath(selectedGame.id, event.currentTarget.value);
                   }}
                   style={{ flex: 1 }}
                 />
                 <button
                   className="secondary-button"
+                  onClick={async () => {
+                    const result = await pickCoverImage();
+                    if (!result?.ok) {
+                      setStatusText(result?.error || t("updateError", language));
+                      return;
+                    }
+                    if (result.canceled || !result.path) {
+                      return;
+                    }
+                    setCustomCoverInput(result.path);
+                    saveCustomCoverPath(selectedGame.id, result.path);
+                  }}
+                >
+                  {t("chooseFile", language)}
+                </button>
+                <button
+                  className="secondary-button"
                   onClick={() => {
-                    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
-                    delete customCovers[selectedGame.id];
-                    localStorage.setItem(STORAGE_KEY_CUSTOM_COVERS, JSON.stringify(customCovers));
-                    setCoverFallbackIndex((current) => ({
-                      ...current,
-                      [selectedGame.id]: 0
-                    }));
+                    setCustomCoverInput("");
+                    saveCustomCoverPath(selectedGame.id, "");
                   }}
                 >
                   {t("reset", language)}
