@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -48,17 +48,11 @@ jobs:
         id: updater_artifact
         shell: pwsh
         run: |
-          $content = Get-Content "dist-electron/latest.yml" -Raw
-          $match = [regex]::Match($content, "(?m)^path:\s*(.+)$")
-          if (-not $match.Success) {
-            throw "Cannot resolve installer path from dist-electron/latest.yml"
+          $installer = Get-ChildItem "dist-electron" -Filter "*.exe" | Select-Object -First 1
+          if (-not $installer) {
+            throw "No installer .exe found in dist-electron/"
           }
-          $relative = $match.Groups[1].Value.Trim()
-          $full = "dist-electron/$relative"
-          if (-not (Test-Path $full)) {
-            throw "Installer referenced in latest.yml not found: $full"
-          }
-          "installer=$full" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "installer=dist-electron/$($installer.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Publish updater assets to GitHub Release
         uses: softprops/action-gh-release@v2
