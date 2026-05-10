@@ -250,10 +250,10 @@ function buildUninstallAction(game) {
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 950,
-    minWidth: 1200,
-    minHeight: 950,
+    width: 1250,
+    height: 1000,
+    minWidth: 1250,
+    minHeight: 1000,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: "#0d1a1c",

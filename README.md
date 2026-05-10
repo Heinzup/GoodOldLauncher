@@ -45,6 +45,8 @@ EN: The app supports auto-update and notifies you when a new version is availabl
 
 - Domyslnie (wersja z `package.json`): `npm run local-release`
 - Konkretna wersja: `npm run local-release -- -Version 0.1.3`
+- Konkretna wersja (krotko): `npm run local-release -- 0.1.3`
+- Wersja z prefiksem `v`: `npm run local-release -- v0.1.3`
 
 Skrypt tworzy artefakty tylko w jednym miejscu: `local-release/<wersja>/`.
 

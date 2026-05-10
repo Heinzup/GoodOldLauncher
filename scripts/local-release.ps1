@@ -1,4 +1,6 @@
 param(
+  [Parameter(Position = 0)]
+  [Alias("v")]
   [string]$Version,
   [switch]$Help
 )
@@ -9,6 +11,8 @@ if ($Help) {
   Write-Host "Usage:"
   Write-Host "  npm run local-release"
   Write-Host "  npm run local-release -- -Version 0.1.3"
+  Write-Host "  npm run local-release -- 0.1.3"
+  Write-Host "  npm run local-release -- v0.1.3"
   exit 0
 }
 
@@ -24,6 +28,7 @@ if ([string]::IsNullOrWhiteSpace($originalVersion)) {
 }
 
 $targetVersion = if ([string]::IsNullOrWhiteSpace($Version)) { $originalVersion } else { $Version.Trim() }
+$targetVersion = $targetVersion -replace '^v\.?', ''
 if ($targetVersion -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
   throw "Invalid version format: $targetVersion"
 }
