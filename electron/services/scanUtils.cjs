@@ -74,7 +74,7 @@ function findPrimaryExecutable(rootPath) {
   return path.join(rootPath, executables[0]);
 }
 
-function findCoverImage(installDirectory, extraCandidates = []) {
+function findCoverImage(installDirectory, extraCandidates = [], gameTitle = null) {
   const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".bmp"];
   const candidates = [];
 
@@ -84,6 +84,17 @@ function findCoverImage(installDirectory, extraCandidates = []) {
       "box", "boxart", "thumbnail", "banner", "artwork", "image",
       "header", "library_hero", "library_600x900", "grid"
     ];
+    
+    // Add game title as search term if provided
+    if (gameTitle && typeof gameTitle === "string") {
+      const titleNorm = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, "");
+      if (titleNorm.length > 2) {
+        for (const extension of imageExtensions) {
+          candidates.push(path.join(installDirectory, `${titleNorm}${extension}`));
+        }
+      }
+    }
+    
     for (const baseName of commonNames) {
       for (const extension of imageExtensions) {
         candidates.push(path.join(installDirectory, `${baseName}${extension}`));
@@ -91,15 +102,28 @@ function findCoverImage(installDirectory, extraCandidates = []) {
     }
 
     const directoryFiles = listFilesSafe(installDirectory);
-    for (const entry of directoryFiles) {
-      const lower = entry.toLowerCase();
-      if (imageExtensions.some((extension) => lower.endsWith(extension))) {
-        candidates.push(path.join(installDirectory, entry));
-      }
+    // Prioritize image files in root by size and name matching
+    const imageFiles = directoryFiles
+      .filter((entry) => imageExtensions.some((ext) => entry.toLowerCase().endsWith(ext)))
+      .sort((a, b) => {
+        // Prioritize by having keywords
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        const aScore = (aLower.includes("cover") ? 10 : 0) + 
+                       (aLower.includes("art") ? 5 : 0) +
+                       (aLower.includes("poster") ? 5 : 0);
+        const bScore = (bLower.includes("cover") ? 10 : 0) +
+                       (bLower.includes("art") ? 5 : 0) +
+                       (bLower.includes("poster") ? 5 : 0);
+        return bScore - aScore;
+      });
+    
+    for (const entry of imageFiles) {
+      candidates.push(path.join(installDirectory, entry));
     }
 
     // Szukaj w podfolderach artwork / images / resources
-    const artSubfolders = ["artwork", "images", "resources", "media", "assets", "ui", "gfx"];
+    const artSubfolders = ["artwork", "images", "resources", "media", "assets", "ui", "gfx", "art", "graphics"];
     for (const subfolder of artSubfolders) {
       const subPath = path.join(installDirectory, subfolder);
       if (isDirectorySafe(subPath)) {

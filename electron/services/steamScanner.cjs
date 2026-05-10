@@ -205,7 +205,7 @@ function listGamesForLibrary(libraryPath, steamRootPath) {
           tags: ["Steam"],
           installed: fs.existsSync(installDirectory),
           coverColor: colorFromAppId(app.appId),
-          coverImagePath: findCoverImage(installDirectory, steamArtworkCandidates)
+          coverImagePath: findCoverImage(installDirectory, steamArtworkCandidates, app.name)
         };
       } catch {
         return null;

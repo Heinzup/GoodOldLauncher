@@ -70,7 +70,7 @@ function createGameFromDirectory(installDirectory) {
     tags: ["Custom"],
     installed: true,
     coverColor: colorFromText(title),
-    coverImagePath: findCoverImage(installDirectory)
+    coverImagePath: findCoverImage(installDirectory, [], title)
   };
 }
 

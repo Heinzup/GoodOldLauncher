@@ -36,7 +36,7 @@ function scanEaRoot(rootPath) {
         tags: ["EA"],
         installed: fs.existsSync(installDirectory),
         coverColor: colorFromText(title),
-        coverImagePath: findCoverImage(installDirectory)
+        coverImagePath: findCoverImage(installDirectory, [], title)
       };
     })
     .filter(Boolean);

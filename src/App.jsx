@@ -26,32 +26,56 @@ import IntegrationsModal from "./components/IntegrationsModal";
 
 const STORAGE_KEY_FAVORITES = "launcher_favorites";
 const STORAGE_KEY_INTEGRATIONS = "launcher_integrations";
+const STORAGE_KEY_CUSTOM_COVERS = "launcher_custom_covers";
 
-function getSteamCdnUrl(appId) {
-  // Steam CDN URL for library hero image (1920x622, good for tiles)
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_hero.jpg`;
+function getSteamCdnUrls(appId) {
+  // Return array of fallback Steam CDN URLs (best to worst)
+  return [
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_hero.jpg`,
+    `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`,
+    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${appId}/capsule_616x353.jpg`,
+    `https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/${appId}/capsule_231x87.jpg`
+  ];
 }
 
-function toCoverUrl(coverPath, gameId) {
-  if (!coverPath || typeof coverPath !== "string") {
-    // Fallback to Steam CDN if no local cover and this is a Steam game
-    if (gameId && gameId.startsWith("steam-")) {
-      const appId = gameId.substring(6); // Remove "steam-" prefix
-      return getSteamCdnUrl(appId);
+function getCustomCoverUrl(gameId) {
+  try {
+    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
+    return customCovers[gameId] || null;
+  } catch {
+    return null;
+  }
+}
+
+function toCoverUrl(coverPath, gameId, fallbackIndex = 0) {
+  // Try custom cover first
+  const customCover = getCustomCoverUrl(gameId);
+  if (customCover) {
+    return customCover;
+  }
+
+  // Try local cover
+  if (coverPath && typeof coverPath === "string") {
+    if (/^[a-zA-Z]:[\\/]/.test(coverPath)) {
+      const withSlashes = coverPath.replace(/\\/g, "/");
+      return encodeURI(`file:///${withSlashes}`);
     }
-    return "";
+
+    if (coverPath.startsWith("\\\\")) {
+      return encodeURI(`file:${coverPath.replace(/\\/g, "/")}`);
+    }
+
+    return coverPath;
   }
 
-  if (/^[a-zA-Z]:[\\/]/.test(coverPath)) {
-    const withSlashes = coverPath.replace(/\\/g, "/");
-    return encodeURI(`file:///${withSlashes}`);
+  // Fallback to Steam CDN if Steam game
+  if (gameId && gameId.startsWith("steam-")) {
+    const appId = gameId.substring(6);
+    const cdnUrls = getSteamCdnUrls(appId);
+    return cdnUrls[fallbackIndex] || cdnUrls[cdnUrls.length - 1];
   }
 
-  if (coverPath.startsWith("\\\\")) {
-    return encodeURI(`file:${coverPath.replace(/\\/g, "/")}`);
-  }
-
-  return coverPath;
+  return "";
 }
 
 export default function App() {
@@ -61,7 +85,7 @@ export default function App() {
   const [statusText, setStatusText] = useState(t("ready", language));
   const [profile, setProfile] = useState(getProfile(""));
   const [settings, setSettings] = useState(getLauncherSettings());
-  const [brokenCovers, setBrokenCovers] = useState({});
+  const [coverFallbackIndex, setCoverFallbackIndex] = useState({}); // gameId -> fallbackIndex
   const [sourceFilter, setSourceFilter] = useState("all");
   const [installedFilter, setInstalledFilter] = useState("all");
   const [showScanModal, setShowScanModal] = useState(false);
@@ -450,8 +474,13 @@ export default function App() {
           <div className="favorites-label">{t("favorites", language) || "Ulubione"}</div>
           <div className="favorites-list">
             {favoriteGames.map((game) => {
-              const coverUrl = toCoverUrl(game.coverImagePath, game.id);
-              const showImage = Boolean(coverUrl) && !brokenCovers[game.id];
+              const fallbackIndex = coverFallbackIndex[game.id] || 0;
+              const coverUrl = toCoverUrl(game.coverImagePath, game.id, fallbackIndex);
+              const isSteamGame = game.id.startsWith("steam-");
+              const steamUrls = isSteamGame ? getSteamCdnUrls(game.id.substring(6)) : [];
+              const isLastFallback = isSteamGame && fallbackIndex >= steamUrls.length - 1;
+              const showImage = Boolean(coverUrl) && !isLastFallback;
+              
               return (
                 <button
                   key={game.id}
@@ -465,12 +494,14 @@ export default function App() {
                         src={coverUrl}
                         alt={game.title}
                         loading="lazy"
-                        onError={() =>
-                          setBrokenCovers((current) => ({
-                            ...current,
-                            [game.id]: true
-                          }))
-                        }
+                        onError={() => {
+                          if (isSteamGame && fallbackIndex < steamUrls.length - 1) {
+                            setCoverFallbackIndex((current) => ({
+                              ...current,
+                              [game.id]: fallbackIndex + 1
+                            }));
+                          }
+                        }}
                       />
                     ) : (
                       <span style={{ backgroundColor: game.coverColor }} />
@@ -519,8 +550,12 @@ export default function App() {
           </div>
           <div className="game-list">
             {filteredGames.map((game) => {
-              const coverUrl = toCoverUrl(game.coverImagePath, game.id);
-              const showImage = Boolean(coverUrl) && !brokenCovers[game.id];
+              const fallbackIndex = coverFallbackIndex[game.id] || 0;
+              const coverUrl = toCoverUrl(game.coverImagePath, game.id, fallbackIndex);
+              const isSteamGame = game.id.startsWith("steam-");
+              const steamUrls = isSteamGame ? getSteamCdnUrls(game.id.substring(6)) : [];
+              const isLastFallback = isSteamGame && fallbackIndex >= steamUrls.length - 1;
+              const showImage = Boolean(coverUrl) && !isLastFallback;
               const isFavorite = favorites.includes(game.id);
 
               return (
@@ -538,12 +573,14 @@ export default function App() {
                         src={coverUrl}
                         alt={game.title || game.id}
                         loading="lazy"
-                        onError={() =>
-                          setBrokenCovers((current) => ({
-                            ...current,
-                            [game.id]: true
-                          }))
-                        }
+                        onError={() => {
+                          if (isSteamGame && fallbackIndex < steamUrls.length - 1) {
+                            setCoverFallbackIndex((current) => ({
+                              ...current,
+                              [game.id]: fallbackIndex + 1
+                            }));
+                          }
+                        }}
                       />
                     ) : (
                       <span
@@ -596,7 +633,50 @@ export default function App() {
                 </button>
               </div>
 
-              <h3>{t("compatibilityProfile", language)}</h3>
+              <h3 style={{ marginTop: "1.5rem" }}>Okładka</h3>
+              <label className="field-label" htmlFor="customCoverPath">
+                Własna okładka (ścieżka do pliku)
+              </label>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  id="customCoverPath"
+                  type="text"
+                  placeholder="Pozostaw puste dla automatycznej detekcji"
+                  defaultValue={getCustomCoverUrl(selectedGame.id) || ""}
+                  onBlur={(event) => {
+                    const path = event.currentTarget.value.trim();
+                    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
+                    if (path) {
+                      customCovers[selectedGame.id] = path;
+                    } else {
+                      delete customCovers[selectedGame.id];
+                    }
+                    localStorage.setItem(STORAGE_KEY_CUSTOM_COVERS, JSON.stringify(customCovers));
+                    // Force re-render by resetting fallback index
+                    setCoverFallbackIndex((current) => ({
+                      ...current,
+                      [selectedGame.id]: 0
+                    }));
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    const customCovers = JSON.parse(localStorage.getItem(STORAGE_KEY_CUSTOM_COVERS)) || {};
+                    delete customCovers[selectedGame.id];
+                    localStorage.setItem(STORAGE_KEY_CUSTOM_COVERS, JSON.stringify(customCovers));
+                    setCoverFallbackIndex((current) => ({
+                      ...current,
+                      [selectedGame.id]: 0
+                    }));
+                  }}
+                >
+                  Resetuj
+                </button>
+              </div>
+
+              <h3 style={{ marginTop: "1.5rem" }}>{t("compatibilityProfile", language)}</h3>
 
               <label className="field-label" htmlFor="compatLayer">
                 {t("compatLayer", language)}

@@ -30,7 +30,7 @@ function normalizeEpicGame(manifest) {
     tags: ["Epic"],
     installed: Boolean(installDirectory && fs.existsSync(installDirectory)),
     coverColor: colorFromText(appName),
-    coverImagePath: findCoverImage(installDirectory, coverCandidates)
+    coverImagePath: findCoverImage(installDirectory, coverCandidates, title)
   };
 }
 

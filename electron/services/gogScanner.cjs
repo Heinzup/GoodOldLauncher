@@ -35,7 +35,7 @@ function scanGogRoot(rootPath) {
         tags: ["GOG"],
         installed: fs.existsSync(installDirectory),
         coverColor: colorFromText(title),
-        coverImagePath: findCoverImage(installDirectory)
+        coverImagePath: findCoverImage(installDirectory, [], title)
       };
     })
     .filter(Boolean);
