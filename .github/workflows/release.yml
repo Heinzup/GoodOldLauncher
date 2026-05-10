@@ -29,7 +29,7 @@ jobs:
         shell: pwsh
         run: |
           $raw = '${{ github.ref_name }}'
-          $normalized = $raw -replace '^v\\.?', ''
+          $normalized = $raw -replace '^v\.?', ''
           if ($normalized -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
             throw "Invalid tag version: $raw"
           }

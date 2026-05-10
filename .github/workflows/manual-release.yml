@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           $raw = '${{ inputs.version }}'
-          $normalized = $raw -replace '^v\\.?', ''
+          $normalized = $raw -replace '^v\.?', ''
           if ($normalized -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
             throw "Invalid version format: $raw"
           }
