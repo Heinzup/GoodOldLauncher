@@ -252,8 +252,8 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 880,
-    minHeight: 790,
+    minWidth: 920,
+    minHeight: 820,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: "#0d1a1c",

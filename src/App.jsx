@@ -87,7 +87,8 @@ export default function App() {
   const [settings, setSettings] = useState(getLauncherSettings());
   const [coverFallbackIndex, setCoverFallbackIndex] = useState({}); // gameId -> fallbackIndex
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [installedFilter, setInstalledFilter] = useState("all");
+  const [showInstalled, setShowInstalled] = useState(false);
+  const [showNotInstalled, setShowNotInstalled] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -245,13 +246,13 @@ export default function App() {
     return games.filter((game) => {
       const sourceMatch = sourceFilter === "all" || game.source === sourceFilter;
       const installedMatch =
-        installedFilter === "all" ||
-        (installedFilter === "installed" && game.installed) ||
-        (installedFilter === "notInstalled" && !game.installed);
+        (!showInstalled && !showNotInstalled) ||
+        (showInstalled && game.installed) ||
+        (showNotInstalled && !game.installed);
       const searchMatch = query.length < 2 || (game.title || "").toLowerCase().includes(query);
       return sourceMatch && installedMatch && searchMatch;
     });
-  }, [games, sourceFilter, installedFilter, searchQuery]);
+  }, [games, sourceFilter, showInstalled, showNotInstalled, searchQuery]);
 
   const favoriteGames = useMemo(() => {
     return games.filter((game) => favorites.includes(game.id)).slice(0, 8);
@@ -576,15 +577,22 @@ export default function App() {
               />
             </div>
             <div className="library-filters">
-              <select
-                className="filter-select"
-                value={installedFilter}
-                onChange={(e) => setInstalledFilter(e.target.value)}
-              >
-                <option value="all">{t("all", language)}</option>
-                <option value="installed">{t("filterInstalled", language)}</option>
-                <option value="notInstalled">{t("filterNotInstalled", language)}</option>
-              </select>
+              <label className="filter-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={showInstalled}
+                  onChange={(e) => setShowInstalled(e.target.checked)}
+                />
+                {t("filterInstalled", language)}
+              </label>
+              <label className="filter-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={showNotInstalled}
+                  onChange={(e) => setShowNotInstalled(e.target.checked)}
+                />
+                {t("filterNotInstalled", language)}
+              </label>
               <select
                 className="filter-select"
                 value={sourceFilter}
@@ -682,7 +690,7 @@ export default function App() {
                 </button>
               </div>
 
-              <h3 style={{ marginTop: "1.5rem" }}>{t("coverSection", language)}</h3>
+              <h3>{t("coverSection", language)}</h3>
               <label className="field-label" htmlFor="customCoverPath">
                 {t("customCoverPath", language)}
               </label>
@@ -725,7 +733,7 @@ export default function App() {
                 </button>
               </div>
 
-              <h3 style={{ marginTop: "1.5rem" }}>{t("compatibilityProfile", language)}</h3>
+              <h3>{t("compatibilityProfile", language)}</h3>
 
               <label className="field-label" htmlFor="compatLayer">
                 {t("compatLayer", language)}
