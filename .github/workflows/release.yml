@@ -28,19 +28,10 @@ jobs:
       - name: Build Windows installer
         run: npm run build:win
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: good-old-launcher-windows
-          path: |
-            dist-electron/*.exe
-            dist-electron/*.blockmap
-            dist-electron/latest*.yml
-
-      - name: Publish GitHub Release assets
+      - name: Publish updater assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist-electron/*.exe
-            dist-electron/*.blockmap
-            dist-electron/latest*.yml
+            dist-electron/Good Old Launcher Setup *.exe
+            dist-electron/Good Old Launcher Setup *.exe.blockmap
+            dist-electron/latest.yml
