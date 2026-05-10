@@ -107,6 +107,7 @@ export default function App() {
   });
   const [oauthLoading, setOAuthLoading] = useState(null); // null | platform name
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const updatePromptShownRef = useRef(false);
 
 
@@ -118,7 +119,7 @@ export default function App() {
   ];
 
   const sourceOptions = [
-    { value: "all", label: t("all", language) || "Wszystkie" },
+    { value: "all", label: t("all", language) },
     { value: "Steam", label: "Steam" },
     { value: "Epic", label: "Epic Games" },
     { value: "GOG", label: "GOG" },
@@ -146,19 +147,37 @@ export default function App() {
       }
 
       if (payload.status === "checking") {
-        setStatusText("Sprawdzam aktualizacje...");
+        setIsCheckingUpdates(true);
+        setStatusText(payload.message || t("checkingUpdates", language));
       }
 
       if (payload.status === "downloading") {
-        setStatusText(payload.message || "Pobieranie aktualizacji...");
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("updateDownloading", language));
+      }
+
+      if (payload.status === "available") {
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("updateDownloading", language));
+      }
+
+      if (payload.status === "not-available") {
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("noUpdates", language));
+      }
+
+      if (payload.status === "dev-skip") {
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("updatesDisabledDev", language));
       }
 
       if (payload.status === "downloaded") {
-        setStatusText(payload.message || "Aktualizacja gotowa do instalacji.");
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("updateReady", language));
 
         if (!updatePromptShownRef.current) {
           updatePromptShownRef.current = true;
-          const shouldInstall = window.confirm("Nowa wersja Launchera jest gotowa. Zainstalować teraz i zrestartować aplikację?");
+          const shouldInstall = window.confirm(t("updateReadyConfirm", language));
           if (shouldInstall) {
             installDownloadedUpdate();
           }
@@ -166,13 +185,33 @@ export default function App() {
       }
 
       if (payload.status === "error") {
-        setStatusText(payload.message || "Błąd sprawdzania aktualizacji.");
+        setIsCheckingUpdates(false);
+        setStatusText(payload.message || t("updateError", language));
       }
     });
 
     checkForUpdates();
     return () => unsubscribe();
-  }, []);
+  }, [language]);
+
+  async function handleCheckForUpdates() {
+    setIsCheckingUpdates(true);
+    setStatusText(t("checkingUpdates", language));
+    const result = await checkForUpdates();
+    if (!result?.ok) {
+      setIsCheckingUpdates(false);
+      setStatusText(result?.error || t("updateError", language));
+      return;
+    }
+
+    const terminalStatuses = new Set(["not-available", "downloaded", "error", "dev-skip"]);
+    if (terminalStatuses.has(result.status)) {
+      setIsCheckingUpdates(false);
+      if (result.message) {
+        setStatusText(result.message);
+      }
+    }
+  }
 
   useEffect(() => {
     if (!contextMenu) {
@@ -341,7 +380,7 @@ export default function App() {
 
       // Jeśli wymaga manual input (dla platform poza Steam)
       if (result.requiresManualInput) {
-        setStatusText(`⏳ ${platformName}: Wklej dane identyfikacyjne w oknie integracji`);
+        setStatusText(`⏳ ${platformName}: ${t("manualCredentialHint", language)}`);
         // oauthLoading zostaje ustawiony, aby pokazać spinner w IntegrationsModal
         return;
       }
@@ -453,8 +492,8 @@ export default function App() {
           <button className="secondary-button" onClick={() => setShowIntegrationsModal(true)}>
             {t("integrations", language) || "Integracje"}
           </button>
-          <button className="secondary-button" onClick={() => checkForUpdates()}>
-            Sprawdź aktualizacje
+          <button className="secondary-button" onClick={handleCheckForUpdates} disabled={isCheckingUpdates}>
+            {isCheckingUpdates ? t("checkingUpdates", language) : t("checkUpdates", language)}
           </button>
           <select 
             className="language-select"
@@ -522,7 +561,7 @@ export default function App() {
             <input
               className="library-search"
               type="text"
-              placeholder="Szukaj gry..."
+              placeholder={t("searchPlaceholder", language)}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -532,9 +571,9 @@ export default function App() {
                 value={installedFilter}
                 onChange={(e) => setInstalledFilter(e.target.value)}
               >
-                <option value="all">Wszystkie</option>
-                <option value="installed">✓ Zainstalowane</option>
-                <option value="notInstalled">✗ Nie zainstalowane</option>
+                <option value="all">{t("all", language)}</option>
+                <option value="installed">{t("filterInstalled", language)}</option>
+                <option value="notInstalled">{t("filterNotInstalled", language)}</option>
               </select>
               <select
                 className="filter-select"
@@ -592,7 +631,7 @@ export default function App() {
                     )}
                   </div>
                   <div className="game-title">{game.title || game.id}</div>
-                  <div className="game-meta">{game.source || "Unknown"}</div>
+                  <div className="game-meta">{game.source || t("unknown", language)}</div>
                 </button>
               );
             })}
@@ -619,29 +658,29 @@ export default function App() {
                   </div>
                   {selectedGame.playtimeHours > 0 && (
                     <div className="details-row">
-                      <span>Czas gry</span>
-                      <strong>{selectedGame.playtimeHours} godz.</strong>
+                      <span>{t("playtime", language)}</span>
+                      <strong>{selectedGame.playtimeHours} {t("hoursShort", language)}</strong>
                     </div>
                   )}
                 </div>
                 <button
                   className={`favorite-button ${favorites.includes(selectedGame.id) ? "active" : ""}`}
                   onClick={() => toggleFavorite(selectedGame.id)}
-                  title={favorites.includes(selectedGame.id) ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+                  title={favorites.includes(selectedGame.id) ? t("removeFromFavorites", language) : t("addToFavorites", language)}
                 >
                   ★
                 </button>
               </div>
 
-              <h3 style={{ marginTop: "1.5rem" }}>Okładka</h3>
+              <h3 style={{ marginTop: "1.5rem" }}>{t("coverSection", language)}</h3>
               <label className="field-label" htmlFor="customCoverPath">
-                Własna okładka (ścieżka do pliku)
+                {t("customCoverPath", language)}
               </label>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <input
                   id="customCoverPath"
                   type="text"
-                  placeholder="Pozostaw puste dla automatycznej detekcji"
+                  placeholder={t("customCoverPlaceholder", language)}
                   defaultValue={getCustomCoverUrl(selectedGame.id) || ""}
                   onBlur={(event) => {
                     const path = event.currentTarget.value.trim();
@@ -672,7 +711,7 @@ export default function App() {
                     }));
                   }}
                 >
-                  Resetuj
+                  {t("reset", language)}
                 </button>
               </div>
 
@@ -784,7 +823,7 @@ export default function App() {
               setContextMenu(null);
             }}
           >
-            {favorites.includes(contextGame.id) ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+            {favorites.includes(contextGame.id) ? t("removeFromFavorites", language) : t("addToFavorites", language)}
           </button>
           {contextGame.installed ? (
             <button
@@ -794,7 +833,7 @@ export default function App() {
                 setContextMenu(null);
               }}
             >
-              Odinstaluj
+              {t("uninstall", language)}
             </button>
           ) : (
             <button
@@ -804,7 +843,7 @@ export default function App() {
                 setContextMenu(null);
               }}
             >
-              Zainstaluj
+              {t("install", language)}
             </button>
           )}
           <button
@@ -814,7 +853,7 @@ export default function App() {
               setContextMenu(null);
             }}
           >
-            Otwórz folder gry
+            {t("openGameFolder", language)}
           </button>
         </div>
       ) : null}

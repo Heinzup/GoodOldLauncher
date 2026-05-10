@@ -18,17 +18,17 @@ export default function IntegrationsModal({
   if (!isOpen) return null;
 
   const platforms = [
-    { id: "Steam", name: "Steam", icon: "🎮", color: "#1b2839", credentialHelp: "Skopiuj SteamID64 (17 cyfr) ze swojego profilu https://steamcommunity.com/my" },
-    { id: "EA", name: "EA Play", icon: "🎯", color: "#111a1f", credentialHelp: "Wklej token EA API" },
-    { id: "Ubisoft", name: "Ubisoft Connect", icon: "🛡️", color: "#1e2f4f", credentialHelp: "Wklej token Ubisoft API" },
-    { id: "Epic", name: "Epic Games", icon: "⚔️", color: "#001a33", credentialHelp: "Wklej token Epic API" },
-    { id: "GOG", name: "GOG", icon: "🕹️", color: "#2d2d2d", credentialHelp: "Wklej token GOG API" }
+    { id: "Steam", name: "Steam", icon: "🎮", color: "#1b2839", credentialHelp: t("steamCredentialHelp", language) },
+    { id: "EA", name: "EA Play", icon: "🎯", color: "#111a1f", credentialHelp: t("eaCredentialHelp", language) },
+    { id: "Ubisoft", name: "Ubisoft Connect", icon: "🛡️", color: "#1e2f4f", credentialHelp: t("ubisoftCredentialHelp", language) },
+    { id: "Epic", name: "Epic Games", icon: "⚔️", color: "#001a33", credentialHelp: t("epicCredentialHelp", language) },
+    { id: "GOG", name: "GOG", icon: "🕹️", color: "#2d2d2d", credentialHelp: t("gogCredentialHelp", language) }
   ];
 
   async function handleSubmitCredential(platformId) {
     const credential = manualInputs[platformId];
     if (!credential || !credential.trim()) {
-      alert("Wklej dane identyfikacyjne");
+      alert(t("pasteCredentials", language));
       return;
     }
 
@@ -47,10 +47,10 @@ export default function IntegrationsModal({
           [platformId]: ""
         }));
       } else {
-        alert(`Błąd: ${result.error}`);
+        alert(`${t("verificationError", language)}: ${result.error}`);
       }
     } catch (error) {
-      alert(`Błąd: ${error.message}`);
+      alert(`${t("verificationError", language)}: ${error.message}`);
     } finally {
       setStoringCredential(null);
     }
@@ -60,7 +60,7 @@ export default function IntegrationsModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{t("integrations", language) || "Integracje"}</h2>
+          <h2>{t("integrations", language)}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -84,14 +84,14 @@ export default function IntegrationsModal({
                     <h3>{platform.name}</h3>
                     <p>
                       {isProcessing
-                        ? "⏳ Weryfikowanie..."
+                        ? t("integrationVerifying", language)
                         : isLoading 
                           ? platform.id === "Steam"
-                            ? "⏳ Auto-detect Steam..."
-                            : "⏳ Czekam na dane..."
+                            ? t("integrationAutoDetectSteam", language)
+                            : t("integrationWaitingData", language)
                           : isConnected 
-                            ? "✓ Połączono" 
-                            : "Kliknij aby zalogować"}
+                            ? t("integrationConnected", language)
+                            : t("integrationClickToLogin", language)}
                     </p>
                   </div>
                   <div className="integration-actions">
@@ -101,7 +101,7 @@ export default function IntegrationsModal({
                         onClick={() => onLogin(platform.id)}
                         disabled={isLoading || isProcessing}
                       >
-                        {isProcessing ? "⏳ Weryfikowanie..." : isLoading ? "⏳ Logowanie..." : "Zaloguj"}
+                        {isProcessing ? t("integrationVerifying", language) : isLoading ? t("loggingIn", language) : t("login", language)}
                       </button>
                     ) : (
                       <button
@@ -109,7 +109,7 @@ export default function IntegrationsModal({
                         onClick={() => onDisconnect(platform.id)}
                         disabled={isProcessing}
                       >
-                        Wyloguj
+                        {t("logout", language)}
                       </button>
                     )}
                   </div>
@@ -122,7 +122,7 @@ export default function IntegrationsModal({
                     </p>
                     <input
                       type="text"
-                      placeholder="Wklej tutaj..."
+                      placeholder={t("pasteHere", language)}
                       value={manualInputs[platform.id] || ""}
                       onChange={(e) => setManualInputs(prev => ({
                         ...prev,
@@ -135,7 +135,7 @@ export default function IntegrationsModal({
                       onClick={() => handleSubmitCredential(platform.id)}
                       disabled={isProcessing || !manualInputs[platform.id]?.trim()}
                     >
-                      {isProcessing ? "Weryfikowanie..." : "Potwierdź"}
+                      {isProcessing ? t("integrationVerifying", language) : t("confirm", language)}
                     </button>
                   </div>
                 )}
@@ -143,25 +143,25 @@ export default function IntegrationsModal({
                 {isConnected && !shouldShowManualInput && (
                   <div className="integration-details">
                     <label className="field-label">
-                      {platform.name} User ID
+                      {platform.name} {t("userIdLabel", language)}
                     </label>
                     <input
                       type="text"
-                      placeholder={`Np. steam_id_64 dla ${platform.name}`}
+                      placeholder={`${t("userIdPlaceholder", language)} ${platform.name}`}
                       value={state.userId || ""}
                       onChange={(e) => onSetField(platform.id, "userId", e.target.value)}
                     />
 
-                    <label className="field-label">API Token (opcjonalnie)</label>
+                    <label className="field-label">{t("apiTokenOptional", language)}</label>
                     <input
                       type="password"
-                      placeholder="Twój token API..."
+                      placeholder={t("apiTokenPlaceholder", language)}
                       value={state.token || ""}
                       onChange={(e) => onSetField(platform.id, "token", e.target.value)}
                     />
 
                     <p className="integration-note">
-                      🔒 Dane są przechowywane bezpiecznie. Logowanie jest wykonywane przez oficjalne strony usług.
+                      {t("secureStorageNote", language)}
                     </p>
                   </div>
                 )}
@@ -171,22 +171,22 @@ export default function IntegrationsModal({
           </div>
 
           <div className="add-path-section">
-            <h3>O integracjach</h3>
+            <h3>{t("integrationsAbout", language)}</h3>
             <p>
-              Połącz swoje konta aby launcher mógł:
+              {t("integrationsAboutLead", language)}
             </p>
             <ul>
-              <li>🕐 Synchronizować czas rozgrywki</li>
-              <li>🎮 Pobierać listę gier z twojego konta</li>
-              <li>🌐 Aktualizować osiągnięcia</li>
-              <li>📊 Śledzić statystyki</li>
+              <li>{t("integrationsSyncPlaytime", language)}</li>
+              <li>{t("integrationsFetchGames", language)}</li>
+              <li>{t("integrationsSyncAchievements", language)}</li>
+              <li>{t("integrationsTrackStats", language)}</li>
             </ul>
           </div>
         </div>
 
         <div className="modal-footer">
           <button className="secondary-button" onClick={onClose}>
-            Zamknij
+            {t("close", language)}
           </button>
         </div>
       </div>

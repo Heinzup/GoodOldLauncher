@@ -58,7 +58,7 @@ export default function ScanSettingsModal({ isOpen, language, t, onClose, settin
               id="scanPathValue"
               type="text"
               value={pathValue}
-              placeholder="np. D:\\SteamLibrary"
+              placeholder={t("customPathExample", language)}
               onChange={(event) => setPathValue(event.target.value)}
             />
             <button 
@@ -82,7 +82,7 @@ export default function ScanSettingsModal({ isOpen, language, t, onClose, settin
                       <span className="path-list-value">{pathValue}</span>
                       <button
                         className="path-remove-btn"
-                        title="Usuń lokalizację"
+                        title={t("removeLocation", language)}
                         onClick={() => onRemovePath(option.value, pathValue)}
                       >
                         ✕
@@ -97,7 +97,7 @@ export default function ScanSettingsModal({ isOpen, language, t, onClose, settin
 
         <div className="modal-footer">
           <button className="secondary-button" onClick={onClose}>
-            {t("close", language) || "Zamknij"}
+            {t("close", language)}
           </button>
         </div>
       </div>

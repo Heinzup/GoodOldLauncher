@@ -32,23 +32,50 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Normalize version input
+        id: normalize
+        shell: pwsh
+        run: |
+          $raw = '${{ inputs.version }}'
+          $normalized = $raw -replace '^v\\.?', ''
+          if ($normalized -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
+            throw "Invalid version format: $raw"
+          }
+          "VERSION=$normalized" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "tag=v$normalized" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version=$normalized" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Set package version for build
+        shell: pwsh
+        run: npm version $env:VERSION --no-git-tag-version --allow-same-version
+
       - name: Build Windows installer (no auto-publish)
         run: npm run build:renderer && npx electron-builder --win nsis --publish never
         env:
           ELECTRON_BUILDER_CACHE: .cache/electron-builder
 
+      - name: Ensure tag does not already exist
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.normalize.outputs.tag }}'
+          git fetch --tags origin
+          $existing = git ls-remote --tags origin "refs/tags/$tag"
+          if ($existing) {
+            throw "Tag already exists on origin: $tag"
+          }
+
       - name: Create git tag
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag ${{ inputs.version }}
-          git push origin ${{ inputs.version }}
+          git tag ${{ steps.normalize.outputs.tag }}
+          git push origin ${{ steps.normalize.outputs.tag }}
 
       - name: Publish updater assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: ${{ inputs.release_name || inputs.version }}
+          tag_name: ${{ steps.normalize.outputs.tag }}
+          name: ${{ inputs.release_name || steps.normalize.outputs.tag }}
           files: |
             dist-electron/Good Old Launcher Setup *.exe
             dist-electron/Good Old Launcher Setup *.exe.blockmap
