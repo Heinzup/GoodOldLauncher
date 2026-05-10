@@ -1,6 +1,6 @@
 {
   "name": "goodoldlauncher",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Good Old Launcher - one place to scan and launch games from multiple launchers with compatibility profiles.",
   "main": "electron/main.cjs",
   "scripts": {
