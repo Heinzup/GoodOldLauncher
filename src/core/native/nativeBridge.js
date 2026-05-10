@@ -57,3 +57,27 @@ export async function storeServiceCredential(serviceName, credential) {
 
   return window.goodOldLauncher.storeServiceCredential(serviceName, credential);
 }
+
+export async function checkForUpdates() {
+  if (!window.goodOldLauncher?.checkForUpdates) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.checkForUpdates();
+}
+
+export async function installDownloadedUpdate() {
+  if (!window.goodOldLauncher?.installDownloadedUpdate) {
+    return unsupported();
+  }
+
+  return window.goodOldLauncher.installDownloadedUpdate();
+}
+
+export function onUpdateStatus(callback) {
+  if (!window.goodOldLauncher?.onUpdateStatus) {
+    return () => {};
+  }
+
+  return window.goodOldLauncher.onUpdateStatus(callback);
+}

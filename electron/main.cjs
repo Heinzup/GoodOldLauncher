@@ -2,6 +2,7 @@ const path = require("node:path");
 const { app, BrowserWindow, ipcMain, shell, protocol } = require("electron");
 const { spawn } = require("node:child_process");
 const { URL } = require("node:url");
+const { autoUpdater } = require("electron-updater");
 const { scanAllLibraries } = require("./services/launcherScanOrchestrator.cjs");
 const { validateLaunchRequest } = require("./services/launchSecurity.cjs");
 const { preflightCompatibility } = require("./services/compatibilityRuntime.cjs");
@@ -11,6 +12,73 @@ const { verifyAuthConnection } = require("./services/authValidator.cjs");
 const { autoDetectSteamUser } = require("./services/steamDetection.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+let mainWindowRef = null;
+let updateState = {
+  status: "idle",
+  message: ""
+};
+
+function broadcastUpdateStatus(payload) {
+  updateState = {
+    ...updateState,
+    ...payload,
+    timestamp: new Date().toISOString()
+  };
+
+  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+    mainWindowRef.webContents.send("launcher:updateStatus", updateState);
+  }
+}
+
+function setupAutoUpdater() {
+  if (isDev) {
+    broadcastUpdateStatus({ status: "dev-skip", message: "Aktualizacje są wyłączone w trybie dev." });
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    broadcastUpdateStatus({ status: "checking", message: "Sprawdzam aktualizacje..." });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    broadcastUpdateStatus({
+      status: "available",
+      version: info?.version,
+      message: `Dostępna nowa wersja ${info?.version || ""}. Pobieranie...`
+    });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    broadcastUpdateStatus({ status: "not-available", message: "Brak nowych aktualizacji." });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    broadcastUpdateStatus({
+      status: "downloading",
+      percent: progress?.percent || 0,
+      message: `Pobieranie aktualizacji: ${Math.round(progress?.percent || 0)}%`
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    broadcastUpdateStatus({
+      status: "downloaded",
+      version: info?.version,
+      message: "Aktualizacja pobrana. Uruchom ponownie aplikację, aby zainstalować."
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    broadcastUpdateStatus({ status: "error", message: `Błąd aktualizacji: ${error?.message || "unknown"}` });
+  });
+
+  autoUpdater.checkForUpdates().catch((error) => {
+    broadcastUpdateStatus({ status: "error", message: `Błąd sprawdzania aktualizacji: ${error?.message || "unknown"}` });
+  });
+}
 
 const SERVICE_LOGIN_URLS = {
   Steam: "https://store.steampowered.com/login/",
@@ -196,6 +264,7 @@ function createWindow() {
       sandbox: true
     }
   });
+  mainWindowRef = mainWindow;
 
   let wasShown = false;
   const showWindow = () => {
@@ -284,7 +353,6 @@ ipcMain.handle("launcher:scanLibraries", async (_, payload) => {
     } catch {
       // brak tokenu - OK
     }
-    console.log("[ScanLibraries] steamUserId z TokenStore:", steamUserId || "(brak)");
 
     const scanConfig = {
       steamRoots: Array.isArray(payload?.steamRoots) ? payload.steamRoots : [],
@@ -296,7 +364,6 @@ ipcMain.handle("launcher:scanLibraries", async (_, payload) => {
     };
 
     const data = scanAllLibraries(scanConfig);
-    console.log("[ScanLibraries] Znaleziono gier:", data.games?.length, "| diagnostics:", JSON.stringify(data.diagnostics));
     return { ok: true, ...data };
   } catch (error) {
     return { ok: false, error: error.message };
@@ -425,6 +492,35 @@ ipcMain.handle("launcher:verifyServiceConnection", async (_, serviceName) => {
   }
 });
 
+ipcMain.handle("launcher:checkForUpdates", async () => {
+  try {
+    if (isDev) {
+      return { ok: true, ...updateState };
+    }
+
+    await autoUpdater.checkForUpdates();
+    return { ok: true, ...updateState };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
+ipcMain.handle("launcher:installDownloadedUpdate", async () => {
+  try {
+    if (isDev) {
+      return { ok: false, error: "Tryb dev - brak instalacji aktualizacji." };
+    }
+
+    setImmediate(() => {
+      autoUpdater.quitAndInstall(false, true);
+    });
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+});
+
 app.whenReady().then(() => {
   // Rejestruj custom protocol handler dla OAuth callbacks
   // electron://auth/steam?...
@@ -453,6 +549,7 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+  setupAutoUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -9,5 +9,16 @@ contextBridge.exposeInMainWorld("goodOldLauncher", {
   loginService: (serviceName) => ipcRenderer.invoke("launcher:loginService", serviceName),
   logoutService: (serviceName) => ipcRenderer.invoke("launcher:logoutService", serviceName),
   verifyServiceConnection: (serviceName) => ipcRenderer.invoke("launcher:verifyServiceConnection", serviceName),
-  storeServiceCredential: (serviceName, credential) => ipcRenderer.invoke("launcher:storeServiceCredential", serviceName, credential)
+  storeServiceCredential: (serviceName, credential) => ipcRenderer.invoke("launcher:storeServiceCredential", serviceName, credential),
+  checkForUpdates: () => ipcRenderer.invoke("launcher:checkForUpdates"),
+  installDownloadedUpdate: () => ipcRenderer.invoke("launcher:installDownloadedUpdate"),
+  onUpdateStatus: (callback) => {
+    if (typeof callback !== "function") {
+      return () => {};
+    }
+
+    const listener = (_, payload) => callback(payload);
+    ipcRenderer.on("launcher:updateStatus", listener);
+    return () => ipcRenderer.removeListener("launcher:updateStatus", listener);
+  }
 });

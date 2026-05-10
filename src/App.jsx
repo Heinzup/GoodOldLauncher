@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collectLibrary } from "./core/library/libraryService";
 import { registerBuiltinProviders } from "./core/providers/mockProviders";
 import { launchGame } from "./core/launch/launchService";
-import { installGame, loginService, logoutService, openGameFolder, uninstallGame, verifyServiceConnection } from "./core/native/nativeBridge";
+import {
+  checkForUpdates,
+  installDownloadedUpdate,
+  installGame,
+  loginService,
+  logoutService,
+  onUpdateStatus,
+  openGameFolder,
+  uninstallGame,
+  verifyServiceConnection
+} from "./core/native/nativeBridge";
 import { getProfile, saveProfile } from "./core/profiles/profileStore";
 import {
   addScanPath,
@@ -73,6 +83,7 @@ export default function App() {
   });
   const [oauthLoading, setOAuthLoading] = useState(null); // null | platform name
   const [searchQuery, setSearchQuery] = useState("");
+  const updatePromptShownRef = useRef(false);
 
 
   const compatOptions = [
@@ -102,6 +113,41 @@ export default function App() {
 
   useEffect(() => {
     loadLibrary();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onUpdateStatus((payload) => {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      if (payload.status === "checking") {
+        setStatusText("Sprawdzam aktualizacje...");
+      }
+
+      if (payload.status === "downloading") {
+        setStatusText(payload.message || "Pobieranie aktualizacji...");
+      }
+
+      if (payload.status === "downloaded") {
+        setStatusText(payload.message || "Aktualizacja gotowa do instalacji.");
+
+        if (!updatePromptShownRef.current) {
+          updatePromptShownRef.current = true;
+          const shouldInstall = window.confirm("Nowa wersja Launchera jest gotowa. Zainstalować teraz i zrestartować aplikację?");
+          if (shouldInstall) {
+            installDownloadedUpdate();
+          }
+        }
+      }
+
+      if (payload.status === "error") {
+        setStatusText(payload.message || "Błąd sprawdzania aktualizacji.");
+      }
+    });
+
+    checkForUpdates();
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -382,6 +428,9 @@ export default function App() {
           </button>
           <button className="secondary-button" onClick={() => setShowIntegrationsModal(true)}>
             {t("integrations", language) || "Integracje"}
+          </button>
+          <button className="secondary-button" onClick={() => checkForUpdates()}>
+            Sprawdź aktualizacje
           </button>
           <select 
             className="language-select"

@@ -18,7 +18,6 @@ function readSteamPlaytime(steamPath, steamId64Str) {
     const localConfigPath = path.join(steamPath, "userdata", accountId, "config", "localconfig.vdf");
 
     if (!fs.existsSync(localConfigPath)) {
-      console.log("[SteamScanner] localconfig.vdf nie znaleziony dla accountId:", accountId);
       return {};
     }
 
@@ -70,7 +69,6 @@ function readSteamPlaytime(steamPath, steamId64Str) {
       }
     }
 
-    console.log("[SteamScanner] Wczytano playtime dla", Object.keys(playtimes).length, "gier");
     return playtimes;
   } catch (error) {
     console.error("[SteamScanner] Błąd czytania playtime:", error);
