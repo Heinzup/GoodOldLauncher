@@ -54,6 +54,22 @@ jobs:
         env:
           ELECTRON_BUILDER_CACHE: .cache/electron-builder
 
+      - name: Resolve updater artifact path
+        id: updater_artifact
+        shell: pwsh
+        run: |
+          $content = Get-Content "dist-electron/latest.yml" -Raw
+          $match = [regex]::Match($content, "(?m)^path:\s*(.+)$")
+          if (-not $match.Success) {
+            throw "Cannot resolve installer path from dist-electron/latest.yml"
+          }
+          $relative = $match.Groups[1].Value.Trim()
+          $full = "dist-electron/$relative"
+          if (-not (Test-Path $full)) {
+            throw "Installer referenced in latest.yml not found: $full"
+          }
+          "installer=$full" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Ensure tag does not already exist
         shell: pwsh
         run: |
@@ -83,5 +99,5 @@ jobs:
             ## Updater metadata
             `latest.yml` is required only for in-app auto-update.
           files: |
-            dist-electron/Good Old Launcher Setup *.exe
+            ${{ steps.updater_artifact.outputs.installer }}
             dist-electron/latest.yml
