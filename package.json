@@ -27,6 +27,7 @@
   "build": {
     "appId": "com.goodoldlauncher.app",
     "productName": "Good Old Launcher",
+    "artifactName": "Good-Old-Launcher-Setup-${version}.${ext}",
     "directories": {
       "buildResources": "build",
       "output": "dist-electron"

@@ -15,6 +15,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   manual-release:
     runs-on: windows-latest
@@ -58,11 +61,11 @@ jobs:
         id: updater_artifact
         shell: pwsh
         run: |
-          $installer = Get-ChildItem "dist-electron" -Filter "*.exe" | Select-Object -First 1
-          if (-not $installer) {
-            throw "No installer .exe found in dist-electron/"
+          $installer = "dist-electron/Good-Old-Launcher-Setup-$env:VERSION.exe"
+          if (-not (Test-Path $installer)) {
+            throw "Expected installer not found: $installer"
           }
-          "installer=dist-electron/$($installer.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Ensure tag does not already exist
         shell: pwsh
@@ -88,7 +91,7 @@ jobs:
           name: ${{ inputs.release_name || format('Good Old Launcher {0}', steps.normalize.outputs.tag) }}
           body: |
             ## Install
-            Use `Good Old Launcher Setup ... .exe` to install the app.
+            Use `Good-Old-Launcher-Setup-...exe` to install the app.
 
             ## Updater metadata
             `latest.yml` is required only for in-app auto-update.
