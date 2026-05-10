@@ -13,68 +13,52 @@
   --highlight: #f97316;
 }
 
-* {
-  box-sizing: border-box;
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 body {
-  margin: 0;
-  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
-  background: linear-gradient(135deg, #0a0e12 0%, #121820 50%, #0f1419 100%);
+  background: radial-gradient(circle at 15% 20%, rgba(61, 174, 245, 0.08), transparent 38%),
+    radial-gradient(circle at 85% 0%, rgba(45, 156, 219, 0.08), transparent 34%),
+    linear-gradient(180deg, #0a0e12 0%, #070a0f 100%);
   color: var(--text-0);
-  min-height: 100vh;
-  overflow: hidden;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 .app-shell {
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  position: relative;
-  isolation: isolate;
   overflow: hidden;
 }
 
-.app-shell::before,
-.app-shell::after {
-  content: "";
-  position: absolute;
-  inset: auto;
-  pointer-events: none;
-  z-index: -1;
-  filter: blur(42px);
-}
-
-.app-shell::before {
-  width: 38vw;
-  height: 38vw;
-  top: -14vw;
-  right: -8vw;
-  background: radial-gradient(circle, rgba(61, 174, 245, 0.2) 0%, rgba(61, 174, 245, 0) 70%);
-}
-
-.app-shell::after {
-  width: 34vw;
-  height: 34vw;
-  bottom: -14vw;
-  left: -8vw;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.14) 0%, rgba(249, 115, 22, 0) 72%);
-}
-
 .window-titlebar {
-  height: 34px;
+  -webkit-app-region: drag;
+  height: 30px;
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  background:
-    linear-gradient(90deg, rgba(61, 174, 245, 0.18), rgba(61, 174, 245, 0) 28%),
-    linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(8, 12, 16, 1));
-  border-bottom: 1px solid rgba(61, 174, 245, 0.22);
+  background: linear-gradient(180deg, rgba(8, 11, 16, 0.94), rgba(8, 11, 16, 0.98));
+  border-bottom: 1px solid rgba(61, 174, 245, 0.18);
   flex-shrink: 0;
-  user-select: none;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .window-drag-region {
@@ -388,8 +372,6 @@ body {
 }
 
 .game-tile {
-  appearance: none;
-  -webkit-appearance: none;
   width: 100%;
   min-height: 148px;
   border: 1px solid rgba(61, 174, 245, 0.2);
@@ -407,6 +389,11 @@ body {
   transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
+}
+
+.game-tile:focus-visible {
+  outline: 2px solid rgba(126, 207, 255, 0.9);
+  outline-offset: 2px;
 }
 
 .game-tile::before {
@@ -470,6 +457,79 @@ input:focus-visible {
   position: relative;
 }
 
+.game-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-top: auto;
+  min-height: 32px;
+}
+
+.game-actions {
+  position: static;
+  display: flex;
+  gap: 0.28rem;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  opacity: 1;
+  flex-shrink: 0;
+}
+
+.game-tile:hover .game-actions,
+.game-tile:focus-visible .game-actions {
+  opacity: 1;
+}
+
+.game-action-button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(61, 174, 245, 0.25);
+  border-radius: 6px;
+  background: rgba(10, 14, 18, 0.8);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.game-action-button img {
+  width: 13px;
+  height: 13px;
+  display: block;
+  object-fit: contain;
+}
+
+.game-action-button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.02);
+  border-color: rgba(61, 174, 245, 0.55);
+  background: rgba(16, 24, 34, 0.95);
+}
+
+.game-action-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.game-action-button.launch:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.65);
+}
+
+.game-action-button.install:hover:not(:disabled) {
+  border-color: rgba(61, 174, 245, 0.65);
+}
+
+.game-action-button.uninstall:hover:not(:disabled) {
+  border-color: rgba(239, 68, 68, 0.65);
+}
+
 .game-tile > .game-cover > .game-cover-image {
   width: 100%;
   height: 100%;
@@ -492,18 +552,55 @@ input:focus-visible {
   display: block;
   font-weight: 700;
   font-size: 0.85rem;
-  line-height: 1.25;
+  line-height: 1.34;
+  padding-bottom: 2px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden;
-  max-height: 2.6em;
   width: 100%;
 }
 
-.game-tile > .game-meta {
+.game-tile.compact-actions > .game-cover {
+  height: 76px;
+}
+
+.game-tile.compact-actions .game-footer {
+  gap: 0.28rem;
+  min-height: 24px;
+}
+
+.game-tile.compact-actions .game-actions {
+  gap: 0.14rem;
+}
+
+.game-tile.compact-actions .game-action-button {
+  width: 19px;
+  height: 19px;
+  border-radius: 5px;
+}
+
+.game-tile.compact-actions .game-action-button img {
+  width: 10px;
+  height: 10px;
+}
+
+.game-tile.compact-actions > .game-title {
+  font-size: 0.8rem;
+  line-height: 1.28;
+}
+
+.game-footer > .game-meta {
   display: block;
   font-size: 0.72rem;
   color: var(--accent-bright);
   font-weight: 600;
-  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .details-panel {
@@ -516,6 +613,10 @@ input:focus-visible {
   min-height: 0;
   width: 520px;
   max-width: 100%;
+}
+
+.details-panel > * {
+  min-width: 0;
 }
 
 .details-panel::-webkit-scrollbar {
@@ -1412,7 +1513,7 @@ input[type="checkbox"] {
     font-size: 0.85rem;
   }
 
-  .game-tile > .game-meta {
+  .game-footer > .game-meta {
     font-size: 0.75rem;
   }
 }

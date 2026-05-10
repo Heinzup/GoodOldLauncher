@@ -15,3 +15,5 @@ local-release/
 # Logs and temporary files
 *.log
 *.tmp
+prompts.md
+icons/

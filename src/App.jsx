@@ -28,6 +28,10 @@ import {
 import { SUPPORTED_LANGUAGES, getSystemLanguage, t } from "./core/i18n/languages";
 import ScanSettingsModal from "./components/ScanSettingsModal";
 import IntegrationsModal from "./components/IntegrationsModal";
+import playIcon from "../icons/Play_Icon_1.png";
+import downloadIcon from "../icons/Download_Icon_1.png";
+import removeIcon from "../icons/Remove_Icon_1.png";
+import installedIcon from "../icons/App_Icon_4.png";
 
 const STORAGE_KEY_FAVORITES = "launcher_favorites";
 const STORAGE_KEY_INTEGRATIONS = "launcher_integrations";
@@ -537,6 +541,13 @@ export default function App() {
     });
   }
 
+  function handleGameTileKeyDown(event, game) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setSelectedGameId(game.id);
+    }
+  }
+
   function handleContextMenuOpen(event, game) {
     handleGameContextMenu(event, game);
   }
@@ -777,11 +788,15 @@ export default function App() {
               const isFavorite = favorites.includes(game.id);
 
               return (
-                <button
+                <div
                   key={game.id}
-                  className={`game-tile ${selectedGameId === game.id ? "selected" : ""}`}
+                  className={`game-tile ${selectedGameId === game.id ? "selected" : ""} ${(game.title || game.id).length > 26 ? "compact-actions" : ""}`}
                   onClick={() => setSelectedGameId(game.id)}
+                  onKeyDown={(event) => handleGameTileKeyDown(event, game)}
                   onContextMenu={(event) => handleGameContextMenu(event, game)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={game.title || game.id}
                 >
                   {isFavorite && <span className="favorite-badge">★</span>}
                   <div className="game-cover">
@@ -810,8 +825,53 @@ export default function App() {
                     )}
                   </div>
                   <div className="game-title">{game.title || game.id}</div>
-                  <div className="game-meta">{game.source || t("unknown", language)}</div>
-                </button>
+                  <div className="game-footer">
+                    <div className="game-meta">{game.source || t("unknown", language)}</div>
+                    <div className="game-actions" aria-label={game.title || game.id}>
+                      <button
+                        type="button"
+                        className="game-action-button launch"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleLaunchForGame(game);
+                        }}
+                        disabled={!game.installed}
+                        aria-label={t("launchGame", language)}
+                        title={t("launchGame", language)}
+                      >
+                        <img src={playIcon} alt="" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="game-action-button install"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!game.installed) {
+                            handleInstallForGame(game);
+                          }
+                        }}
+                        disabled={game.installed}
+                        aria-label={game.installed ? t("installed", language) : t("install", language)}
+                        title={game.installed ? t("installed", language) : t("install", language)}
+                      >
+                        <img src={game.installed ? installedIcon : downloadIcon} alt="" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="game-action-button uninstall"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleUninstallForGame(game);
+                        }}
+                        disabled={!game.installed}
+                        aria-label={t("uninstall", language)}
+                        title={t("uninstall", language)}
+                      >
+                        <img src={removeIcon} alt="" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
