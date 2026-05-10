@@ -1,6 +1,17 @@
+# Dependencies
 node_modules/
+
+# Build and release artifacts
 dist/
 dist-electron/
+local-release/
+
+# Local caches
+.cache/
+
+# Editor metadata
 .vscode/
+
+# Logs and temporary files
 *.log
 *.tmp

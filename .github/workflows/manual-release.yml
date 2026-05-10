@@ -15,19 +15,16 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   manual-release:
     runs-on: windows-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -85,16 +82,21 @@ jobs:
           git push origin ${{ steps.normalize.outputs.tag }}
 
       - name: Publish updater assets to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.normalize.outputs.tag }}
-          name: ${{ inputs.release_name || format('Good Old Launcher {0}', steps.normalize.outputs.tag) }}
-          body: |
-            ## Install
-            Use `Good-Old-Launcher-Setup-...exe` to install the app.
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releaseName = '${{ inputs.release_name }}'
+          if ([string]::IsNullOrWhiteSpace($releaseName)) {
+            $releaseName = 'Good Old Launcher ${{ steps.normalize.outputs.tag }}'
+          }
+          $notes = @"
+          ## Install
+          Use Good-Old-Launcher-Setup-...exe to install the app.
 
-            ## Updater metadata
-            `latest.yml` is required only for in-app auto-update.
-          files: |
-            ${{ steps.updater_artifact.outputs.installer }}
-            dist-electron/latest.yml
+          ## Updater metadata
+          latest.yml is required only for in-app auto-update.
+          "@
+          $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          Set-Content -Path $notesPath -Value $notes -Encoding utf8
+          gh release create '${{ steps.normalize.outputs.tag }}' '${{ steps.updater_artifact.outputs.installer }}' 'dist-electron/latest.yml' --title $releaseName --notes-file $notesPath
