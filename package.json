@@ -1,6 +1,6 @@
 {
   "name": "goodoldlauncher",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Good Old Launcher - one place to scan and launch games from multiple launchers with compatibility profiles.",
   "main": "electron/main.cjs",
   "scripts": {
@@ -41,6 +41,7 @@
     ],
     "win": {
       "signAndEditExecutable": false,
+      "icon": "icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -53,6 +54,9 @@
     "nsis": {
       "oneClick": false,
       "differentialPackage": false,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true

@@ -564,32 +564,7 @@ input:focus-visible {
 }
 
 .game-tile.compact-actions > .game-cover {
-  height: 76px;
-}
-
-.game-tile.compact-actions .game-footer {
-  gap: 0.28rem;
-  min-height: 24px;
-}
-
-.game-tile.compact-actions .game-actions {
-  gap: 0.14rem;
-}
-
-.game-tile.compact-actions .game-action-button {
-  width: 19px;
-  height: 19px;
-  border-radius: 5px;
-}
-
-.game-tile.compact-actions .game-action-button img {
-  width: 10px;
-  height: 10px;
-}
-
-.game-tile.compact-actions > .game-title {
-  font-size: 0.8rem;
-  line-height: 1.28;
+  height: 64px;
 }
 
 .game-footer > .game-meta {
