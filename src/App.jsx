@@ -122,9 +122,7 @@ export default function App() {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [customCoverInput, setCustomCoverInput] = useState("");
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
-  const [compactCoverGameIds, setCompactCoverGameIds] = useState({});
   const updatePromptShownRef = useRef(false);
-  const titleRefs = useRef(new Map());
 
   const compatOptions = [
     { value: "none", label: t("compatOptionNone", language) },
@@ -277,48 +275,6 @@ export default function App() {
       return sourceMatch && installedMatch && searchMatch;
     });
   }, [games, sourceFilter, showInstalled, showNotInstalled, searchQuery]);
-
-  useEffect(() => {
-    let rafId = null;
-
-    const recomputeCompactCovers = () => {
-      const next = {};
-
-      for (const game of filteredGames) {
-        const titleElement = titleRefs.current.get(game.id);
-        if (!titleElement) {
-          continue;
-        }
-
-        const isOverflowing =
-          titleElement.scrollHeight > titleElement.clientHeight + 1 ||
-          titleElement.scrollWidth > titleElement.clientWidth + 1;
-
-        if (isOverflowing) {
-          next[game.id] = true;
-        }
-      }
-
-      setCompactCoverGameIds((current) => {
-        const currentKeys = Object.keys(current);
-        const nextKeys = Object.keys(next);
-        if (currentKeys.length === nextKeys.length && currentKeys.every((id) => next[id])) {
-          return current;
-        }
-        return next;
-      });
-    };
-
-    rafId = window.requestAnimationFrame(recomputeCompactCovers);
-    window.addEventListener("resize", recomputeCompactCovers);
-
-    return () => {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId);
-      }
-      window.removeEventListener("resize", recomputeCompactCovers);
-    };
-  }, [filteredGames]);
 
   const favoriteGames = useMemo(() => {
     return games.filter((game) => favorites.includes(game.id));
@@ -833,7 +789,7 @@ export default function App() {
               return (
                 <div
                   key={game.id}
-                  className={`game-tile ${selectedGameId === game.id ? "selected" : ""} ${compactCoverGameIds[game.id] ? "compact-actions" : ""}`}
+                  className={`game-tile ${selectedGameId === game.id ? "selected" : ""}`}
                   onClick={() => setSelectedGameId(game.id)}
                   onKeyDown={(event) => handleGameTileKeyDown(event, game)}
                   onContextMenu={(event) => handleGameContextMenu(event, game)}
@@ -867,18 +823,7 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  <div
-                    className="game-title"
-                    ref={(element) => {
-                      if (element) {
-                        titleRefs.current.set(game.id, element);
-                      } else {
-                        titleRefs.current.delete(game.id);
-                      }
-                    }}
-                  >
-                    {game.title || game.id}
-                  </div>
+                  <div className="game-title">{game.title || game.id}</div>
                   <div className="game-footer">
                     <div className="game-meta">{game.source || t("unknown", language)}</div>
                     <div className="game-actions" aria-label={game.title || game.id}>

@@ -256,6 +256,7 @@ function createWindow() {
     minHeight: 1020,
     show: false,
     frame: false,
+    icon: path.join(__dirname, "icon.ico"),
     autoHideMenuBar: true,
     backgroundColor: "#0d1a1c",
     webPreferences: {
@@ -599,6 +600,8 @@ ipcMain.handle("launcher:installDownloadedUpdate", async () => {
 });
 
 app.whenReady().then(() => {
+  app.setAppUserModelId("com.goodoldlauncher.app");
+
   // Rejestruj custom protocol handler dla OAuth callbacks
   // electron://auth/steam?...
   // electron://auth/epic?...

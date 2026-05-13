@@ -29,6 +29,7 @@
     "appId": "com.goodoldlauncher.app",
     "productName": "Good Old Launcher",
     "artifactName": "Good-Old-Launcher-Setup-${version}.${ext}",
+    "afterPack": "scripts/after-pack-icon.cjs",
     "directories": {
       "buildResources": "build",
       "output": "dist-electron"
@@ -81,6 +82,7 @@
     "cross-env": "^10.1.0",
     "electron": "^42.0.1",
     "electron-builder": "^26.8.1",
+    "rcedit": "^5.0.2",
     "vite": "^8.0.11",
     "wait-on": "^9.0.5"
   }
