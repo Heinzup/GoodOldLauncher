@@ -37,7 +37,7 @@ function setupAutoUpdater() {
   }
 
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on("checking-for-update", () => {
     broadcastUpdateStatus({ status: "checking", message: "Sprawdzam aktualizacje..." });

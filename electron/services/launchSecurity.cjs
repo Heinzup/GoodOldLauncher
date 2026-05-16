@@ -5,6 +5,8 @@ const ALLOWED_PROTOCOLS = ["steam://", "com.epicgames.launcher://", "goggalaxy:/
 const ALLOWED_EXTENSIONS = new Set([".exe", ".bat", ".cmd", ".com", ".lnk"]);
 const MAX_ARGS = 64;
 const MAX_ARG_LENGTH = 2048;
+const MIN_FPS_LIMIT = 10;
+const MAX_FPS_LIMIT = 1000;
 
 function isAllowedProtocol(input) {
   return ALLOWED_PROTOCOLS.some((protocol) => input.startsWith(protocol));
@@ -68,6 +70,17 @@ function validateLaunchRequest(launchConfig) {
   const argsValidation = validateArgs(args);
   if (!argsValidation.ok) {
     return argsValidation;
+  }
+
+  const rawFpsLimit = launchConfig?.fpsLimit ?? launchConfig?.compatibility?.fpsLimit ?? 0;
+  const parsedFpsLimit = Number.parseInt(rawFpsLimit, 10);
+  if (Number.isFinite(parsedFpsLimit) && parsedFpsLimit !== 0) {
+    if (parsedFpsLimit < MIN_FPS_LIMIT || parsedFpsLimit > MAX_FPS_LIMIT) {
+      return {
+        ok: false,
+        error: `FPS limit must be 0 or between ${MIN_FPS_LIMIT} and ${MAX_FPS_LIMIT}.`
+      };
+    }
   }
 
   return { ok: true, mode: execValidation.mode };

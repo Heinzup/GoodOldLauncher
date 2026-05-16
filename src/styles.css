@@ -109,6 +109,7 @@ textarea {
 }
 
 .topbar {
+  -webkit-app-region: no-drag;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -281,6 +282,7 @@ textarea {
 }
 
 .content-grid {
+  -webkit-app-region: no-drag;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) 520px;
@@ -291,6 +293,7 @@ textarea {
 }
 
 .panel {
+  -webkit-app-region: no-drag;
   background: linear-gradient(180deg, rgba(19, 24, 32, 0.8), rgba(10, 14, 18, 0.9));
   border: 1px solid rgba(61, 174, 245, 0.15);
   border-radius: 12px;
@@ -335,9 +338,14 @@ textarea {
 }
 
 .library-panel {
+  -webkit-app-region: no-drag;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.library-panel * {
+  -webkit-app-region: no-drag;
 }
 
 .library-panel .game-list {
@@ -629,7 +637,8 @@ input:focus-visible {
 }
 
 select,
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
   width: 100%;
   border: 1px solid rgba(61, 174, 245, 0.3);
   background: rgba(19, 24, 32, 0.8);
@@ -641,17 +650,29 @@ input[type="text"] {
 }
 
 select:hover,
-input[type="text"]:hover {
+input[type="text"]:hover,
+input[type="number"]:hover {
   border-color: rgba(61, 174, 245, 0.5);
   background: rgba(26, 35, 46, 0.9);
 }
 
 select:focus,
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="number"]:focus {
   outline: none;
   border-color: rgba(61, 174, 245, 0.8);
   background: rgba(26, 35, 46, 0.95);
   box-shadow: 0 0 12px rgba(45, 156, 219, 0.2);
+}
+
+input[type="number"] {
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 input[type="checkbox"] {
@@ -842,9 +863,13 @@ input[type="checkbox"] {
   gap: 0.75rem;
   margin-bottom: 1rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 3;
+  -webkit-app-region: no-drag;
 }
 
 .library-title-row {
+  -webkit-app-region: no-drag;
   display: grid;
   grid-template-columns: auto minmax(240px, 1fr);
   align-items: center;
@@ -866,6 +891,10 @@ input[type="checkbox"] {
   font-size: 0.85rem;
   transition: all 0.2s ease;
   min-width: 240px;
+  position: relative;
+  z-index: 4;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
 }
 
 .library-search:focus {

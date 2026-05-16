@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collectLibrary } from "./core/library/libraryService";
 import { registerBuiltinProviders } from "./core/providers/mockProviders";
 import { launchGame } from "./core/launch/launchService";
@@ -121,8 +121,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [customCoverInput, setCustomCoverInput] = useState("");
+  const [fpsLimitInput, setFpsLimitInput] = useState("0");
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
-  const updatePromptShownRef = useRef(false);
 
   const compatOptions = [
     { value: "none", label: t("compatOptionNone", language) },
@@ -200,14 +200,6 @@ export default function App() {
         setUpdateState("downloaded");
         setIsCheckingUpdates(false);
         setStatusText(payload.message || t("updateReady", language));
-
-        if (!updatePromptShownRef.current) {
-          updatePromptShownRef.current = true;
-          const shouldInstall = window.confirm(t("updateReadyConfirm", language));
-          if (shouldInstall) {
-            installDownloadedUpdate();
-          }
-        }
       }
 
       if (payload.status === "error") {
@@ -271,7 +263,7 @@ export default function App() {
         (!showInstalled && !showNotInstalled) ||
         (showInstalled && game.installed) ||
         (showNotInstalled && !game.installed);
-      const searchMatch = query.length < 2 || (game.title || "").toLowerCase().includes(query);
+      const searchMatch = query.length < 1 || (game.title || "").toLowerCase().includes(query);
       return sourceMatch && installedMatch && searchMatch;
     });
   }, [games, sourceFilter, showInstalled, showNotInstalled, searchQuery]);
@@ -291,9 +283,38 @@ export default function App() {
     if (!selectedGame) {
       return;
     }
-    setProfile(getProfile(selectedGame.id));
+    const loadedProfile = getProfile(selectedGame.id);
+    setProfile(loadedProfile);
+    setFpsLimitInput(String(loadedProfile.fpsLimit ?? 0));
     setCustomCoverInput(getCustomCoverUrl(selectedGame.id) || "");
   }, [selectedGame]);
+
+  function normalizeFpsInput(rawValue) {
+    const trimmed = String(rawValue ?? "").trim();
+    if (!trimmed) {
+      return 0;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 0;
+    }
+
+    return Math.max(10, Math.min(parsed, 1000));
+  }
+
+  function commitFpsLimit(rawValue) {
+    const normalized = normalizeFpsInput(rawValue);
+    const normalizedText = String(normalized);
+    setFpsLimitInput(normalizedText);
+
+    if ((profile.fpsLimit ?? 0) !== normalized) {
+      updateProfile({
+        ...profile,
+        fpsLimit: normalized
+      });
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -745,6 +766,8 @@ export default function App() {
                 placeholder={t("searchPlaceholder", language)}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
                 aria-label={t("searchPlaceholder", language)}
               />
             </div>
@@ -1005,6 +1028,27 @@ export default function App() {
                     launchArgs: event.target.value
                   })
                 }
+              />
+
+              <label className="field-label" htmlFor="fpsLimit">
+                {t("fpsLimit", language)}
+              </label>
+              <input
+                id="fpsLimit"
+                type="number"
+                min="0"
+                max="1000"
+                step="1"
+                value={fpsLimitInput}
+                placeholder={t("fpsLimitPlaceholder", language)}
+                onChange={(event) => setFpsLimitInput(event.target.value)}
+                onBlur={(event) => commitFpsLimit(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    commitFpsLimit(event.currentTarget.value);
+                    event.currentTarget.blur();
+                  }
+                }}
               />
 
               <button className="launch-button" onClick={handleLaunch}>
